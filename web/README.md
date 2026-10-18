@@ -1,11 +1,12 @@
 # NYCRide — the website
 
-Two pages, both served by the FastAPI app in `app/`:
+Three pages, all served by the FastAPI app in `app/`:
 
 | Page | What it does |
 |---|---|
 | `index.html` | the welcome page: city-wide figures, the zone map, hourly price bars |
 | `predictor.html` | pick two zones and a time, then seven sections of model output |
+| `ask.html` | ask a question about the project and get an answer in plain English |
 
 ## Run it
 
@@ -22,11 +23,13 @@ work: both pages `fetch` their data, which browsers block on `file://`.
 
 | Path | What it is |
 |---|---|
-| `index.html`, `predictor.html` | the two pages |
+| `index.html`, `predictor.html`, `ask.html` | the three pages |
 | `static/css/styles.css` | shared theme tokens and the welcome page |
 | `static/css/predictor.css` | the predictor page |
 | `static/js/app.js` | welcome page: map, hourly bars, headline figures |
 | `static/js/predictor.js` | predictor page: zone picker, route map, every chart |
+| `static/js/ask.js` | ask page: sends the question, renders the answer |
+| `static/css/ask.css` | the ask page |
 | `data/*.json`, `data/*.geojson` | written by `pipeline/export_web_data.py` |
 
 Regenerate the data after re-running the pipeline:

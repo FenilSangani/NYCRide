@@ -1,0 +1,1589 @@
+{
+ "built_from": {
+  "fare_trained": "2026-10-16 17:29",
+  "test_month": "2026-04"
+ },
+ "facts": [
+  {
+   "topic": "model",
+   "title": "model accuracy",
+   "text": "The fare model is a gradient boosted decision tree trained on log(base_fare). On the unseen test month it is off by $5.02 on a typical trip (mean absolute error) and explains 80.4% of the variation in fares (R-squared 0.804).",
+   "keywords": "how accurate good performance result score works well reliable trust error rate correct"
+  },
+  {
+   "topic": "model",
+   "title": "what MAE means",
+   "text": "Mean absolute error is the average size of the model's mistake, ignoring whether it guessed high or low. $5.02 against a typical fare of about $19 is roughly 26% out.",
+   "keywords": "mean absolute error metric measure evaluate"
+  },
+  {
+   "topic": "model",
+   "title": "what R-squared means",
+   "text": "R-squared is how much of the variation in fares the model explains. Always guessing the average fare scores 0, a perfect model scores 1, and a model worse than the average scores below 0.",
+   "keywords": "r2 r squared metric measure evaluate variance explained"
+  },
+  {
+   "topic": "model",
+   "title": "baseline score: mean fare",
+   "text": "Scored on the unseen test month, mean fare gets a mean absolute error of $13.73 and an R-squared of -0.0001."
+  },
+  {
+   "topic": "model",
+   "title": "baseline score: linear regression, miles only",
+   "text": "Scored on the unseen test month, linear regression, miles only gets a mean absolute error of $7.03 and an R-squared of 0.6712."
+  },
+  {
+   "topic": "model",
+   "title": "baseline score: linear regression, + hour/day/airport",
+   "text": "Scored on the unseen test month, linear regression, + hour/day/airport gets a mean absolute error of $7.00 and an R-squared of 0.6810."
+  },
+  {
+   "topic": "model",
+   "title": "baseline score: gradient boosting",
+   "text": "Scored on the unseen test month, gradient boosting gets a mean absolute error of $5.24 and an R-squared of 0.8035."
+  },
+  {
+   "topic": "model",
+   "title": "baseline score: gradient boosting on log(fare)",
+   "text": "Scored on the unseen test month, gradient boosting on log(fare) gets a mean absolute error of $5.02 and an R-squared of 0.8039."
+  },
+  {
+   "topic": "model",
+   "title": "why baselines are shown",
+   "text": "The simple baselines are published next to the model on purpose. A model that cannot beat a straight line through distance is not worth shipping, and an R-squared on its own says nothing about whether the score was hard to reach. The gap between the straight line and the full model is the part worth claiming."
+  },
+  {
+   "topic": "model",
+   "title": "the price range",
+   "text": "The range shown around each estimate comes from two more models trained with quantile loss at the 10th and 90th percentile, not from a rule of thumb. 79.5% of real fares land inside that band against a target of 80%, so the uncertainty is calibrated. The band is $16.69 wide on average.",
+   "keywords": "confidence interval uncertainty band prediction interval quantile how sure certainty"
+  },
+  {
+   "topic": "model",
+   "title": "train and test split",
+   "text": "The model trains on 2025-09, 2025-12, 2026-01 and is tested on 2026-04, a later month it never saw. The split is by month and never random: a random split lets the model see the future and reports a score it could not repeat in use. It learned from 5,851,185 trips and was scored on 1,969,989.",
+   "keywords": "validation overfitting leakage cross validation holdout evaluate how tested"
+  },
+  {
+   "topic": "model",
+   "title": "features the model uses",
+   "text": "The model is given twelve features: pick-up zone, drop-off zone, trip miles, hour, day of week, whether it is a weekend, whether it is a public holiday, whether it is a holiday eve, whether the provider is Uber, whether the ride was requested as shared, and whether either end is an airport."
+  },
+  {
+   "topic": "model",
+   "title": "data leakage",
+   "text": "Trip duration, tips, driver pay and price per mile are deliberately kept out of the model. All of them are only known once the ride is over, so feeding them in would leak the answer and produce a score the model could never repeat on a real request.",
+   "keywords": "leak cheating target leakage overfit"
+  },
+  {
+   "topic": "model",
+   "title": "what the model leans on most",
+   "text": "By permutation importance the model leans most on trip miles, which costs 1.441 of R-squared when shuffled. Then come pu zone (0.065), do zone (0.055), hour (0.038), is uber (0.009).",
+   "keywords": "feature importance which features matter signal driver influence"
+  },
+  {
+   "topic": "model",
+   "title": "how feature importance is measured",
+   "text": "Importance is measured by permutation: one feature's values are shuffled at random and the drop in accuracy is recorded. A feature that changes nothing when scrambled was not being used. This is measured on the test data rather than read off the trees, because a tree's built-in importance favours columns with more distinct values."
+  },
+  {
+   "topic": "model",
+   "title": "zones matter beyond distance",
+   "text": "After distance, the pick-up and drop-off zones are the strongest signals. That is the model learning that the same mile costs different amounts in different parts of the city, which a plain distance formula cannot do."
+  },
+  {
+   "topic": "model",
+   "title": "how distance is worked out",
+   "text": "The site only knows two zones, but the model needs miles. It uses the median distance actually driven between that pair of zones, measured over 22,470 pairs with enough trips. For a pair with too few trips it falls back to the straight-line distance multiplied by a detour factor of 1.3762, which was measured from the data rather than guessed: NYC streets make a trip about 38% longer than flying straight.",
+   "keywords": "miles km distance calculate route haversine detour"
+  },
+  {
+   "topic": "model",
+   "title": "why gradient boosted trees",
+   "text": "Gradient boosting builds many small decision trees one after another, each correcting what the ones before it got wrong. Trees were chosen because fares are not linear: airport trips are near flat rate and rush hour bites differently in each zone. A linear model needs those interactions written out by hand, and trees find them. They also handle zone ids naturally, train in minutes on a laptop with no GPU, and can be explained.",
+   "keywords": "algorithm method technique approach which model type regression classifier random forest xgboost neural network deep learning svm linear why this model choose chose chosen"
+  },
+  {
+   "topic": "model",
+   "title": "why the log of the fare",
+   "text": "The model predicts the logarithm of the fare rather than the fare itself. Fares are right-skewed, with many small ones and a few very large ones. Training on the log makes the model minimise percentage error instead of dollar error, which is what matters to a rider, and it makes a negative prediction impossible.",
+   "keywords": "target transform skew logarithm transformation"
+  },
+  {
+   "topic": "demand",
+   "title": "demand model result",
+   "text": "The demand side predicts pick-ups per zone per hour. The honest result is that the trained model lost. The lagged model wins outright, but it needs the last few hours of real counts and the site has no live feed. Without lags the model scored below the plain zone x hour x weekday average, so the site serves that lookup instead. The lagged score is reported to show what a live feed would buy; neither model is saved, because nothing loads them.",
+   "keywords": "demand pickups busy forecast time series lags baseline lost"
+  },
+  {
+   "topic": "demand",
+   "title": "demand score: last hour repeated",
+   "text": "For predicting pick-ups per zone-hour, last hour repeated scores an R-squared of 0.9037 and a mean absolute error of 20.89 trips."
+  },
+  {
+   "topic": "demand",
+   "title": "demand score: same hour last week",
+   "text": "For predicting pick-ups per zone-hour, same hour last week scores an R-squared of 0.9391 and a mean absolute error of 15.29 trips."
+  },
+  {
+   "topic": "demand",
+   "title": "demand score: zone x hour x weekday average",
+   "text": "For predicting pick-ups per zone-hour, zone x hour x weekday average scores an R-squared of 0.9507 and a mean absolute error of 13.74 trips."
+  },
+  {
+   "topic": "demand",
+   "title": "demand score: gradient boosting + lags",
+   "text": "For predicting pick-ups per zone-hour, gradient boosting + lags scores an R-squared of 0.9717 and a mean absolute error of 10.91 trips."
+  },
+  {
+   "topic": "demand",
+   "title": "demand score: gradient boosting, no lags",
+   "text": "For predicting pick-ups per zone-hour, gradient boosting, no lags scores an R-squared of 0.9153 and a mean absolute error of 20.18 trips."
+  },
+  {
+   "topic": "demand",
+   "title": "what the map's demand layer shows",
+   "text": "The demand figure on the map is served from a lookup table of the average for each zone, hour and weekday, not from a model. It is what ships because it beat the model the site could actually serve."
+  },
+  {
+   "topic": "weather",
+   "title": "weather was tested and dropped",
+   "text": "Weather was tested as a feature and rejected. Rain lifts the citywide mean fare 5-6% in September and April, but that lift is already carried by hour and zone, which the model has. The test here is whether weather adds anything on top. On the same rows and the same split, adding temperature, rainfall and wind moved the error from $5.080 to $5.089 and R-squared from 0.799 to 0.794 - very slightly worse. The weather columns are not used by the model.",
+   "keywords": "rain raining weather temperature failed experiment rejected negative result"
+  },
+  {
+   "topic": "weather",
+   "title": "does rain raise fares",
+   "text": "Rain does lift the citywide mean fare by about 5-6% in September and April, and made no measurable difference in January. But hour and zone already carry that signal, so giving the model the weather on top added nothing."
+  },
+  {
+   "topic": "data",
+   "title": "size of the dataset",
+   "text": "The project is built on 78,211,750 cleaned trips from New York City's Taxi and Limousine Commission High Volume For-Hire Vehicle records, covering 4 months: 2025-09, 2025-12, 2026-01, 2026-04. They were chosen to cover autumn, the winter holidays, cold and rain.",
+   "keywords": "how many rows records trips big data volume size"
+  },
+  {
+   "topic": "data",
+   "title": "which companies",
+   "text": "The data covers Uber and Lyft. Uber is 72.7% of the trips read (56,893,909) and Lyft is 27.3% (21,317,841)."
+  },
+  {
+   "topic": "data",
+   "title": "busiest and quietest hours",
+   "text": "The busiest hour across the city is 6 pm with 4,668,771 trips, and the quietest is 3 am with 1,091,347."
+  },
+  {
+   "topic": "data",
+   "title": "cheapest and dearest time to travel",
+   "text": "Per mile, the cheapest hour to travel is 4 am at $5.07 a mile, and the dearest is 5 pm at $7.48 a mile - about 48% more."
+  },
+  {
+   "topic": "data",
+   "title": "number of zones",
+   "text": "New York's taxi zone map has 263 zones, and 261 of them have enough trips to report statistics for."
+  },
+  {
+   "topic": "data",
+   "title": "price per mile through the day",
+   "text": "Price per mile by hour, from midnight: midnight $5.83, 1 am $5.76, 2 am $5.58, 3 am $5.27, 4 am $5.07, 5 am $5.08, 6 am $5.57, 7 am $6.73, 8 am $7.27, 9 am $6.99, 10 am $6.93, 11 am $7.00, noon $7.07, 1 pm $7.12, 2 pm $7.27, 3 pm $7.44, 4 pm $7.47, 5 pm $7.48, 6 pm $7.31, 7 pm $6.88, 8 pm $6.62, 9 pm $6.47, 10 pm $6.22, 11 pm $6.03."
+  },
+  {
+   "topic": "cleaning",
+   "title": "how the data was cleaned",
+   "text": "About 6.1 to 6.5% of raw rows are dropped per month, most of them trips with an unknown pick-up or drop-off zone. A trip is kept only if its distance is between 0.1 and 100.0 miles, its duration between 1 minute and 6 hours, its fare between $1 and $1000, its wait under 60 minutes, its price per mile between $1 and $100, and its average speed between 1 and 60 mph.",
+   "keywords": "cleaning preprocessing filter outliers removed dropped quality preparation"
+  },
+  {
+   "topic": "cleaning",
+   "title": "why those cleaning limits",
+   "text": "The limits come from looking at the data, not from habit. The raw price per mile reaches $3,951 a mile, speeds run past anything a NYC street allows, and zones 264 and 265 mean unknown or outside the city and have no shape on the map."
+  },
+  {
+   "topic": "cleaning",
+   "title": "no feature scaling",
+   "text": "Values are kept in real units with no scaling or normalisation. Tree models do not need it, the site has to display $24.50 rather than 0.37, and a scaler must be fitted on the training split only, so it belongs inside a model pipeline rather than in the stored data."
+  },
+  {
+   "topic": "cleaning",
+   "title": "holidays in the data",
+   "text": "The model is told about public holidays and holiday eves. The holidays covered are Labor Day, Thanksgiving, Christmas, New Year's Day, Martin Luther King Day, Good Friday and Easter, plus Christmas Eve and New Year's Eve as eves."
+  },
+  {
+   "topic": "project",
+   "title": "what this project is",
+   "text": "NYCRide is a fare prediction site for New York City. You pick a pick-up zone, a drop-off zone and a time, and it prices the trip, shows the range around that price, prices all 24 hours and all 7 days so you can see when to travel, compares Uber against Lyft on that exact route, and shows what the model gets right and wrong.",
+   "keywords": "about overview summary describe explain purpose goal nycride what does it do"
+  },
+  {
+   "topic": "project",
+   "title": "the point of the project",
+   "text": "The point is honesty about the model, not just the prediction. Every score on the site is read from the trained model's own metrics file rather than typed in, plain baselines are shown next to the model, and the two experiments that failed are reported alongside the ones that worked.",
+   "keywords": "why built motivation purpose interview portfolio"
+  },
+  {
+   "topic": "project",
+   "title": "what the site can tell you",
+   "text": "The site has seven sections: the estimated fare with its range and both providers, the best time to leave, cheaper pick-up points nearby, the same trip across the week, what single change would make it cheapest, the weather experiment, and a model lab with the scores and baselines."
+  },
+  {
+   "topic": "project",
+   "title": "technology used",
+   "text": "Python with scikit-learn for the models, pandas and PyArrow for the data, FastAPI for the API, and plain HTML, CSS and JavaScript with Leaflet for the maps. No frontend framework and no paid APIs.",
+   "keywords": "tech stack framework library tools languages built with python fastapi sklearn"
+  },
+  {
+   "topic": "project",
+   "title": "why NYC data and not India",
+   "text": "An Indian ride-hailing dataset was tried first and rejected. Profiling it showed the fare had almost no correlation with distance, the hourly patterns were flat and the counts were suspiciously round - it was synthetic, so no model trained on it would mean anything. No real Indian trip data of this kind is public, and NYC's TLC publishes real records, so the project moved to New York.",
+   "keywords": "india indian delhi synthetic fake kaggle dataset choice why new york"
+  },
+  {
+   "topic": "project",
+   "title": "how fast the site is",
+   "text": "A prediction takes about a millisecond. Nothing at request time touches the 78 million row data files: the models and the lookups are loaded once when the service starts, and every endpoint works from those."
+  },
+  {
+   "topic": "project",
+   "title": "limitations: what the data cannot say",
+   "text": "The things that really move a fare - live traffic, the surge multiplier, the exact route taken and how many drivers are free - are not in the data at all, because a TLC record is written after the trip is over. That is the ceiling on accuracy here, and roughly $5 of error is close to it.",
+   "keywords": "weakness weaknesses problem problems drawback shortcoming limitation fail wrong bad improve better surge traffic"
+  },
+  {
+   "topic": "project",
+   "title": "limitations: coverage",
+   "text": "The project covers New York City only and four months only. There is no vehicle category, no passenger count, no surge column and no cancellation data in the source.",
+   "keywords": "weakness scope cities months coverage limitation"
+  },
+  {
+   "topic": "project",
+   "title": "limitations: events",
+   "text": "Street closure permits for parades and street festivals stop appearing in the city's event feed after 2016, so the 2025-26 months carry Parks Department permits only. Events are a weak signal and the all-zero column is dropped rather than fed to a model as noise."
+  },
+  {
+   "topic": "project",
+   "title": "limitations: weather is one reading",
+   "text": "Weather is a single city-wide hourly reading, so local showers are missed. Visibility comes back empty from the archive and is dropped."
+  },
+  {
+   "topic": "project",
+   "title": "why a group vehicle optimiser was dropped",
+   "text": "An earlier idea was to work out the cheapest mix of vehicles for a group - two cabs against two autos, say. It was dropped because New York has no auto-rickshaws or bike taxis, and the records carry no vehicle type at all, so the prices would have had to be invented."
+  },
+  {
+   "topic": "project",
+   "title": "where the data comes from",
+   "text": "Trip records come from the NYC Taxi and Limousine Commission's High Volume For-Hire Vehicle monthly files. Zone shapes come from the TLC taxi zone shapefile, weather from the Open-Meteo archive, and the road routes drawn on the map from the public OSRM routing service."
+  },
+  {
+   "topic": "project",
+   "title": "how the Ask feature works",
+   "text": "This answer comes from a retrieval system over facts built directly from the project's own metrics and data files. The question is matched against those facts, the closest ones are passed to a language model, and it writes the answer from them. Questions about the price of a specific trip are sent to the fare model itself instead, so the number is a real prediction rather than something retrieved.",
+   "keywords": "rag retrieval chatbot ask question how does this work llm embeddings"
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Newark Airport",
+   "text": "Newark Airport is a taxi zone in EWR (zone id 1). Trips starting there have a median fare of $28.86 and a median price per mile of $0.00. It sees about 0 pick-ups an hour, and the typical wait between requesting and being picked up is 14.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Jamaica Bay",
+   "text": "Jamaica Bay is a taxi zone in Queens (zone id 2). Trips starting there have a median fare of $31.67 and a median price per mile of $5.34. It sees about 0 pick-ups an hour, and the typical wait between requesting and being picked up is 8.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Allerton/Pelham Gardens",
+   "text": "Allerton/Pelham Gardens is a taxi zone in Bronx (zone id 3). Trips starting there have a median fare of $13.27 and a median price per mile of $6.08. It sees about 62 pick-ups an hour, and the typical wait between requesting and being picked up is 5.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Alphabet City",
+   "text": "Alphabet City is a taxi zone in Manhattan (zone id 4). Trips starting there have a median fare of $20.18 and a median price per mile of $7.17. It sees about 72 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Arden Heights",
+   "text": "Arden Heights is a taxi zone in Staten Island (zone id 5). Trips starting there have a median fare of $14.90 and a median price per mile of $4.71. It sees about 8 pick-ups an hour, and the typical wait between requesting and being picked up is 7.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Arrochar/Fort Wadsworth",
+   "text": "Arrochar/Fort Wadsworth is a taxi zone in Staten Island (zone id 6). Trips starting there have a median fare of $16.33 and a median price per mile of $5.09. It sees about 17 pick-ups an hour, and the typical wait between requesting and being picked up is 6.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Astoria",
+   "text": "Astoria is a taxi zone in Queens (zone id 7). Trips starting there have a median fare of $15.53 and a median price per mile of $6.34. It sees about 275 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Astoria Park",
+   "text": "Astoria Park is a taxi zone in Queens (zone id 8). Trips starting there have a median fare of $19.16 and a median price per mile of $5.88. It sees about 1 pick-ups an hour, and the typical wait between requesting and being picked up is 4.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Auburndale",
+   "text": "Auburndale is a taxi zone in Queens (zone id 9). Trips starting there have a median fare of $15.21 and a median price per mile of $5.38. It sees about 25 pick-ups an hour, and the typical wait between requesting and being picked up is 5.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Baisley Park",
+   "text": "Baisley Park is a taxi zone in Queens (zone id 10). Trips starting there have a median fare of $15.47 and a median price per mile of $5.78. It sees about 90 pick-ups an hour, and the typical wait between requesting and being picked up is 5.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bath Beach",
+   "text": "Bath Beach is a taxi zone in Brooklyn (zone id 11). Trips starting there have a median fare of $15.19 and a median price per mile of $6.02. It sees about 35 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Battery Park",
+   "text": "Battery Park is a taxi zone in Manhattan (zone id 12). Trips starting there have a median fare of $27.48 and a median price per mile of $6.46. It sees about 3 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Battery Park City",
+   "text": "Battery Park City is a taxi zone in Manhattan (zone id 13). Trips starting there have a median fare of $29.61 and a median price per mile of $7.71. It sees about 110 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bay Ridge",
+   "text": "Bay Ridge is a taxi zone in Brooklyn (zone id 14). Trips starting there have a median fare of $15.00 and a median price per mile of $6.14. It sees about 164 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bay Terrace/Fort Totten",
+   "text": "Bay Terrace/Fort Totten is a taxi zone in Queens (zone id 15). Trips starting there have a median fare of $18.42 and a median price per mile of $4.83. It sees about 20 pick-ups an hour, and the typical wait between requesting and being picked up is 6.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bayside",
+   "text": "Bayside is a taxi zone in Queens (zone id 16). Trips starting there have a median fare of $16.00 and a median price per mile of $5.17. It sees about 56 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bedford",
+   "text": "Bedford is a taxi zone in Brooklyn (zone id 17). Trips starting there have a median fare of $15.57 and a median price per mile of $7.28. It sees about 230 pick-ups an hour, and the typical wait between requesting and being picked up is 5.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bedford Park",
+   "text": "Bedford Park is a taxi zone in Bronx (zone id 18). Trips starting there have a median fare of $14.42 and a median price per mile of $6.38. It sees about 133 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bellerose",
+   "text": "Bellerose is a taxi zone in Queens (zone id 19). Trips starting there have a median fare of $18.03 and a median price per mile of $4.63. It sees about 20 pick-ups an hour, and the typical wait between requesting and being picked up is 5.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Belmont",
+   "text": "Belmont is a taxi zone in Bronx (zone id 20). Trips starting there have a median fare of $14.71 and a median price per mile of $6.29. It sees about 83 pick-ups an hour, and the typical wait between requesting and being picked up is 5.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bensonhurst East",
+   "text": "Bensonhurst East is a taxi zone in Brooklyn (zone id 21). Trips starting there have a median fare of $13.87 and a median price per mile of $6.51. It sees about 81 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bensonhurst West",
+   "text": "Bensonhurst West is a taxi zone in Brooklyn (zone id 22). Trips starting there have a median fare of $14.29 and a median price per mile of $6.62. It sees about 108 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bloomfield/Emerson Hill",
+   "text": "Bloomfield/Emerson Hill is a taxi zone in Staten Island (zone id 23). Trips starting there have a median fare of $16.97 and a median price per mile of $4.64. It sees about 45 pick-ups an hour, and the typical wait between requesting and being picked up is 6.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bloomingdale",
+   "text": "Bloomingdale is a taxi zone in Manhattan (zone id 24). Trips starting there have a median fare of $17.69 and a median price per mile of $6.63. It sees about 36 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Boerum Hill",
+   "text": "Boerum Hill is a taxi zone in Brooklyn (zone id 25). Trips starting there have a median fare of $21.30 and a median price per mile of $6.91. It sees about 160 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Borough Park",
+   "text": "Borough Park is a taxi zone in Brooklyn (zone id 26). Trips starting there have a median fare of $12.68 and a median price per mile of $8.27. It sees about 154 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Breezy Point/Fort Tilden/Riis Beach",
+   "text": "Breezy Point/Fort Tilden/Riis Beach is a taxi zone in Queens (zone id 27). Trips starting there have a median fare of $27.80 and a median price per mile of $4.23. It sees about 1 pick-ups an hour, and the typical wait between requesting and being picked up is 11.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Briarwood/Jamaica Hills",
+   "text": "Briarwood/Jamaica Hills is a taxi zone in Queens (zone id 28). Trips starting there have a median fare of $15.79 and a median price per mile of $5.98. It sees about 72 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Brighton Beach",
+   "text": "Brighton Beach is a taxi zone in Brooklyn (zone id 29). Trips starting there have a median fare of $13.68 and a median price per mile of $6.32. It sees about 63 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Broad Channel",
+   "text": "Broad Channel is a taxi zone in Queens (zone id 30). Trips starting there have a median fare of $18.75 and a median price per mile of $4.55. It sees about 2 pick-ups an hour, and the typical wait between requesting and being picked up is 9.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bronx Park",
+   "text": "Bronx Park is a taxi zone in Bronx (zone id 31). Trips starting there have a median fare of $15.61 and a median price per mile of $5.82. It sees about 11 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bronxdale",
+   "text": "Bronxdale is a taxi zone in Bronx (zone id 32). Trips starting there have a median fare of $14.46 and a median price per mile of $5.77. It sees about 68 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Brooklyn Heights",
+   "text": "Brooklyn Heights is a taxi zone in Brooklyn (zone id 33). Trips starting there have a median fare of $23.78 and a median price per mile of $6.96. It sees about 133 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Brooklyn Navy Yard",
+   "text": "Brooklyn Navy Yard is a taxi zone in Brooklyn (zone id 34). Trips starting there have a median fare of $21.11 and a median price per mile of $7.26. It sees about 23 pick-ups an hour, and the typical wait between requesting and being picked up is 6.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Brownsville",
+   "text": "Brownsville is a taxi zone in Brooklyn (zone id 35). Trips starting there have a median fare of $14.30 and a median price per mile of $6.81. It sees about 170 pick-ups an hour, and the typical wait between requesting and being picked up is 6.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bushwick North",
+   "text": "Bushwick North is a taxi zone in Brooklyn (zone id 36). Trips starting there have a median fare of $16.87 and a median price per mile of $6.84. It sees about 228 pick-ups an hour, and the typical wait between requesting and being picked up is 5.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Bushwick South",
+   "text": "Bushwick South is a taxi zone in Brooklyn (zone id 37). Trips starting there have a median fare of $17.03 and a median price per mile of $6.96. It sees about 311 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Cambria Heights",
+   "text": "Cambria Heights is a taxi zone in Queens (zone id 38). Trips starting there have a median fare of $17.02 and a median price per mile of $5.10. It sees about 30 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Canarsie",
+   "text": "Canarsie is a taxi zone in Brooklyn (zone id 39). Trips starting there have a median fare of $13.46 and a median price per mile of $6.43. It sees about 214 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Carroll Gardens",
+   "text": "Carroll Gardens is a taxi zone in Brooklyn (zone id 40). Trips starting there have a median fare of $19.20 and a median price per mile of $7.07. It sees about 69 pick-ups an hour, and the typical wait between requesting and being picked up is 4.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Central Harlem",
+   "text": "Central Harlem is a taxi zone in Manhattan (zone id 41). Trips starting there have a median fare of $15.02 and a median price per mile of $6.85. It sees about 179 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Central Harlem North",
+   "text": "Central Harlem North is a taxi zone in Manhattan (zone id 42). Trips starting there have a median fare of $14.50 and a median price per mile of $6.39. It sees about 244 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Central Park",
+   "text": "Central Park is a taxi zone in Manhattan (zone id 43). Trips starting there have a median fare of $23.97 and a median price per mile of $9.09. It sees about 40 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Charleston/Tottenville",
+   "text": "Charleston/Tottenville is a taxi zone in Staten Island (zone id 44). Trips starting there have a median fare of $15.23 and a median price per mile of $4.82. It sees about 13 pick-ups an hour, and the typical wait between requesting and being picked up is 7.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Chinatown",
+   "text": "Chinatown is a taxi zone in Manhattan (zone id 45). Trips starting there have a median fare of $22.87 and a median price per mile of $7.18. It sees about 67 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: City Island",
+   "text": "City Island is a taxi zone in Bronx (zone id 46). Trips starting there have a median fare of $27.05 and a median price per mile of $3.86. It sees about 5 pick-ups an hour, and the typical wait between requesting and being picked up is 9.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Claremont/Bathgate",
+   "text": "Claremont/Bathgate is a taxi zone in Bronx (zone id 47). Trips starting there have a median fare of $14.31 and a median price per mile of $6.58. It sees about 94 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Clinton East",
+   "text": "Clinton East is a taxi zone in Manhattan (zone id 48). Trips starting there have a median fare of $24.09 and a median price per mile of $8.33. It sees about 224 pick-ups an hour, and the typical wait between requesting and being picked up is 4.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Clinton Hill",
+   "text": "Clinton Hill is a taxi zone in Brooklyn (zone id 49). Trips starting there have a median fare of $18.20 and a median price per mile of $7.13. It sees about 171 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Clinton West",
+   "text": "Clinton West is a taxi zone in Manhattan (zone id 50). Trips starting there have a median fare of $22.13 and a median price per mile of $8.13. It sees about 130 pick-ups an hour, and the typical wait between requesting and being picked up is 4.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Co-Op City",
+   "text": "Co-Op City is a taxi zone in Bronx (zone id 51). Trips starting there have a median fare of $17.01 and a median price per mile of $5.17. It sees about 105 pick-ups an hour, and the typical wait between requesting and being picked up is 5.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Cobble Hill",
+   "text": "Cobble Hill is a taxi zone in Brooklyn (zone id 52). Trips starting there have a median fare of $21.15 and a median price per mile of $6.93. It sees about 46 pick-ups an hour, and the typical wait between requesting and being picked up is 4.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: College Point",
+   "text": "College Point is a taxi zone in Queens (zone id 53). Trips starting there have a median fare of $19.74 and a median price per mile of $4.93. It sees about 45 pick-ups an hour, and the typical wait between requesting and being picked up is 6.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Columbia Street",
+   "text": "Columbia Street is a taxi zone in Brooklyn (zone id 54). Trips starting there have a median fare of $20.19 and a median price per mile of $6.25. It sees about 17 pick-ups an hour, and the typical wait between requesting and being picked up is 4.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Coney Island",
+   "text": "Coney Island is a taxi zone in Brooklyn (zone id 55). Trips starting there have a median fare of $14.24 and a median price per mile of $5.84. It sees about 79 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Corona",
+   "text": "Corona is a taxi zone in Queens (zone id 56). Trips starting there have a median fare of $15.22 and a median price per mile of $6.15. It sees about 93 pick-ups an hour, and the typical wait between requesting and being picked up is 5.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Corona",
+   "text": "Corona is a taxi zone in Queens (zone id 57). Trips starting there have a median fare of $14.89 and a median price per mile of $5.32. It sees about 7 pick-ups an hour, and the typical wait between requesting and being picked up is 5.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Country Club",
+   "text": "Country Club is a taxi zone in Bronx (zone id 58). Trips starting there have a median fare of $15.24 and a median price per mile of $5.28. It sees about 9 pick-ups an hour, and the typical wait between requesting and being picked up is 6.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Crotona Park",
+   "text": "Crotona Park is a taxi zone in Bronx (zone id 59). Trips starting there have a median fare of $16.12 and a median price per mile of $5.95. It sees about 3 pick-ups an hour, and the typical wait between requesting and being picked up is 5.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Crotona Park East",
+   "text": "Crotona Park East is a taxi zone in Bronx (zone id 60). Trips starting there have a median fare of $14.34 and a median price per mile of $6.13. It sees about 65 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Crown Heights North",
+   "text": "Crown Heights North is a taxi zone in Brooklyn (zone id 61). Trips starting there have a median fare of $16.10 and a median price per mile of $6.87. It sees about 365 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Crown Heights South",
+   "text": "Crown Heights South is a taxi zone in Brooklyn (zone id 62). Trips starting there have a median fare of $16.07 and a median price per mile of $6.94. It sees about 103 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Cypress Hills",
+   "text": "Cypress Hills is a taxi zone in Brooklyn (zone id 63). Trips starting there have a median fare of $15.22 and a median price per mile of $6.19. It sees about 91 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Douglaston",
+   "text": "Douglaston is a taxi zone in Queens (zone id 64). Trips starting there have a median fare of $18.33 and a median price per mile of $4.69. It sees about 16 pick-ups an hour, and the typical wait between requesting and being picked up is 7.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Downtown Brooklyn/MetroTech",
+   "text": "Downtown Brooklyn/MetroTech is a taxi zone in Brooklyn (zone id 65). Trips starting there have a median fare of $21.46 and a median price per mile of $6.53. It sees about 128 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: DUMBO/Vinegar Hill",
+   "text": "DUMBO/Vinegar Hill is a taxi zone in Brooklyn (zone id 66). Trips starting there have a median fare of $23.32 and a median price per mile of $6.90. It sees about 104 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Dyker Heights",
+   "text": "Dyker Heights is a taxi zone in Brooklyn (zone id 67). Trips starting there have a median fare of $13.65 and a median price per mile of $6.65. It sees about 58 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Chelsea",
+   "text": "East Chelsea is a taxi zone in Manhattan (zone id 68). Trips starting there have a median fare of $26.53 and a median price per mile of $9.49. It sees about 261 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Concourse/Concourse Village",
+   "text": "East Concourse/Concourse Village is a taxi zone in Bronx (zone id 69). Trips starting there have a median fare of $15.15 and a median price per mile of $6.77. It sees about 145 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Elmhurst",
+   "text": "East Elmhurst is a taxi zone in Queens (zone id 70). Trips starting there have a median fare of $16.17 and a median price per mile of $5.47. It sees about 70 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Flatbush/Farragut",
+   "text": "East Flatbush/Farragut is a taxi zone in Brooklyn (zone id 71). Trips starting there have a median fare of $14.81 and a median price per mile of $6.78. It sees about 121 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Flatbush/Remsen Village",
+   "text": "East Flatbush/Remsen Village is a taxi zone in Brooklyn (zone id 72). Trips starting there have a median fare of $14.34 and a median price per mile of $6.77. It sees about 142 pick-ups an hour, and the typical wait between requesting and being picked up is 6.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Flushing",
+   "text": "East Flushing is a taxi zone in Queens (zone id 73). Trips starting there have a median fare of $14.34 and a median price per mile of $6.06. It sees about 30 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Harlem North",
+   "text": "East Harlem North is a taxi zone in Manhattan (zone id 74). Trips starting there have a median fare of $15.60 and a median price per mile of $6.05. It sees about 190 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Harlem South",
+   "text": "East Harlem South is a taxi zone in Manhattan (zone id 75). Trips starting there have a median fare of $18.08 and a median price per mile of $6.25. It sees about 170 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East New York",
+   "text": "East New York is a taxi zone in Brooklyn (zone id 76). Trips starting there have a median fare of $13.51 and a median price per mile of $6.35. It sees about 328 pick-ups an hour, and the typical wait between requesting and being picked up is 5.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East New York/Pennsylvania Avenue",
+   "text": "East New York/Pennsylvania Avenue is a taxi zone in Brooklyn (zone id 77). Trips starting there have a median fare of $14.35 and a median price per mile of $6.42. It sees about 82 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Tremont",
+   "text": "East Tremont is a taxi zone in Bronx (zone id 78). Trips starting there have a median fare of $15.12 and a median price per mile of $6.27. It sees about 125 pick-ups an hour, and the typical wait between requesting and being picked up is 5.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Village",
+   "text": "East Village is a taxi zone in Manhattan (zone id 79). Trips starting there have a median fare of $21.79 and a median price per mile of $8.24. It sees about 311 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: East Williamsburg",
+   "text": "East Williamsburg is a taxi zone in Brooklyn (zone id 80). Trips starting there have a median fare of $18.17 and a median price per mile of $6.83. It sees about 217 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Eastchester",
+   "text": "Eastchester is a taxi zone in Bronx (zone id 81). Trips starting there have a median fare of $12.63 and a median price per mile of $5.82. It sees about 73 pick-ups an hour, and the typical wait between requesting and being picked up is 5.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Elmhurst",
+   "text": "Elmhurst is a taxi zone in Queens (zone id 82). Trips starting there have a median fare of $14.50 and a median price per mile of $6.37. It sees about 223 pick-ups an hour, and the typical wait between requesting and being picked up is 5.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Elmhurst/Maspeth",
+   "text": "Elmhurst/Maspeth is a taxi zone in Queens (zone id 83). Trips starting there have a median fare of $14.32 and a median price per mile of $6.22. It sees about 73 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Eltingville/Annadale/Prince's Bay",
+   "text": "Eltingville/Annadale/Prince's Bay is a taxi zone in Staten Island (zone id 84). Trips starting there have a median fare of $15.24 and a median price per mile of $5.10. It sees about 13 pick-ups an hour, and the typical wait between requesting and being picked up is 6.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Erasmus",
+   "text": "Erasmus is a taxi zone in Brooklyn (zone id 85). Trips starting there have a median fare of $15.86 and a median price per mile of $6.71. It sees about 91 pick-ups an hour, and the typical wait between requesting and being picked up is 5.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Far Rockaway",
+   "text": "Far Rockaway is a taxi zone in Queens (zone id 86). Trips starting there have a median fare of $11.62 and a median price per mile of $6.44. It sees about 50 pick-ups an hour, and the typical wait between requesting and being picked up is 7.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Financial District North",
+   "text": "Financial District North is a taxi zone in Manhattan (zone id 87). Trips starting there have a median fare of $28.32 and a median price per mile of $6.98. It sees about 155 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Financial District South",
+   "text": "Financial District South is a taxi zone in Manhattan (zone id 88). Trips starting there have a median fare of $31.04 and a median price per mile of $6.78. It sees about 69 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Flatbush/Ditmas Park",
+   "text": "Flatbush/Ditmas Park is a taxi zone in Brooklyn (zone id 89). Trips starting there have a median fare of $16.50 and a median price per mile of $6.54. It sees about 229 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Flatiron",
+   "text": "Flatiron is a taxi zone in Manhattan (zone id 90). Trips starting there have a median fare of $22.62 and a median price per mile of $9.75. It sees about 165 pick-ups an hour, and the typical wait between requesting and being picked up is 3.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Flatlands",
+   "text": "Flatlands is a taxi zone in Brooklyn (zone id 91). Trips starting there have a median fare of $14.94 and a median price per mile of $6.47. It sees about 142 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Flushing",
+   "text": "Flushing is a taxi zone in Queens (zone id 92). Trips starting there have a median fare of $16.36 and a median price per mile of $5.42. It sees about 155 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Flushing Meadows-Corona Park",
+   "text": "Flushing Meadows-Corona Park is a taxi zone in Queens (zone id 93). Trips starting there have a median fare of $29.52 and a median price per mile of $5.08. It sees about 18 pick-ups an hour, and the typical wait between requesting and being picked up is 7.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Fordham South",
+   "text": "Fordham South is a taxi zone in Bronx (zone id 94). Trips starting there have a median fare of $14.39 and a median price per mile of $6.52. It sees about 59 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Forest Hills",
+   "text": "Forest Hills is a taxi zone in Queens (zone id 95). Trips starting there have a median fare of $16.92 and a median price per mile of $5.91. It sees about 204 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Forest Park/Highland Park",
+   "text": "Forest Park/Highland Park is a taxi zone in Queens (zone id 96). Trips starting there have a median fare of $17.02 and a median price per mile of $5.51. It sees about 4 pick-ups an hour, and the typical wait between requesting and being picked up is 5.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Fort Greene",
+   "text": "Fort Greene is a taxi zone in Brooklyn (zone id 97). Trips starting there have a median fare of $19.49 and a median price per mile of $6.96. It sees about 189 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Fresh Meadows",
+   "text": "Fresh Meadows is a taxi zone in Queens (zone id 98). Trips starting there have a median fare of $17.05 and a median price per mile of $4.97. It sees about 27 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Freshkills Park",
+   "text": "Freshkills Park is a taxi zone in Staten Island (zone id 99). Trips starting there have a median fare of $15.21 and a median price per mile of $4.85. It sees about 1 pick-ups an hour, and the typical wait between requesting and being picked up is 7.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Garment District",
+   "text": "Garment District is a taxi zone in Manhattan (zone id 100). Trips starting there have a median fare of $28.76 and a median price per mile of $9.44. It sees about 128 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Glen Oaks",
+   "text": "Glen Oaks is a taxi zone in Queens (zone id 101). Trips starting there have a median fare of $23.71 and a median price per mile of $4.14. It sees about 19 pick-ups an hour, and the typical wait between requesting and being picked up is 6.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Glendale",
+   "text": "Glendale is a taxi zone in Queens (zone id 102). Trips starting there have a median fare of $15.52 and a median price per mile of $6.39. It sees about 72 pick-ups an hour, and the typical wait between requesting and being picked up is 5.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Governor's Island/Ellis Island/Liberty Island",
+   "text": "Governor's Island/Ellis Island/Liberty Island is a taxi zone in Manhattan (zone id 105). Trips starting there have a median fare of $16.85 and a median price per mile of $11.84. It sees about 0 pick-ups an hour, and the typical wait between requesting and being picked up is 10.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Gowanus",
+   "text": "Gowanus is a taxi zone in Brooklyn (zone id 106). Trips starting there have a median fare of $17.90 and a median price per mile of $7.04. It sees about 66 pick-ups an hour, and the typical wait between requesting and being picked up is 4.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Gramercy",
+   "text": "Gramercy is a taxi zone in Manhattan (zone id 107). Trips starting there have a median fare of $21.97 and a median price per mile of $9.05. It sees about 186 pick-ups an hour, and the typical wait between requesting and being picked up is 4.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Gravesend",
+   "text": "Gravesend is a taxi zone in Brooklyn (zone id 108). Trips starting there have a median fare of $13.51 and a median price per mile of $6.00. It sees about 44 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Great Kills",
+   "text": "Great Kills is a taxi zone in Staten Island (zone id 109). Trips starting there have a median fare of $15.20 and a median price per mile of $5.49. It sees about 21 pick-ups an hour, and the typical wait between requesting and being picked up is 7.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Great Kills Park",
+   "text": "Great Kills Park is a taxi zone in Staten Island (zone id 110). Trips starting there have a median fare of $14.47 and a median price per mile of $4.77. It sees about 0 pick-ups an hour, and the typical wait between requesting and being picked up is 8.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Green-Wood Cemetery",
+   "text": "Green-Wood Cemetery is a taxi zone in Brooklyn (zone id 111). Trips starting there have a median fare of $15.22 and a median price per mile of $7.27. It sees about 1 pick-ups an hour, and the typical wait between requesting and being picked up is 4.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Greenpoint",
+   "text": "Greenpoint is a taxi zone in Brooklyn (zone id 112). Trips starting there have a median fare of $20.47 and a median price per mile of $6.76. It sees about 279 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Greenwich Village North",
+   "text": "Greenwich Village North is a taxi zone in Manhattan (zone id 113). Trips starting there have a median fare of $23.40 and a median price per mile of $10.01. It sees about 148 pick-ups an hour, and the typical wait between requesting and being picked up is 4.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Greenwich Village South",
+   "text": "Greenwich Village South is a taxi zone in Manhattan (zone id 114). Trips starting there have a median fare of $23.85 and a median price per mile of $9.77. It sees about 154 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Grymes Hill/Clifton",
+   "text": "Grymes Hill/Clifton is a taxi zone in Staten Island (zone id 115). Trips starting there have a median fare of $13.65 and a median price per mile of $5.46. It sees about 24 pick-ups an hour, and the typical wait between requesting and being picked up is 7.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Hamilton Heights",
+   "text": "Hamilton Heights is a taxi zone in Manhattan (zone id 116). Trips starting there have a median fare of $16.08 and a median price per mile of $5.86. It sees about 123 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Hammels/Arverne",
+   "text": "Hammels/Arverne is a taxi zone in Queens (zone id 117). Trips starting there have a median fare of $13.40 and a median price per mile of $5.97. It sees about 43 pick-ups an hour, and the typical wait between requesting and being picked up is 7.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Heartland Village/Todt Hill",
+   "text": "Heartland Village/Todt Hill is a taxi zone in Staten Island (zone id 118). Trips starting there have a median fare of $18.19 and a median price per mile of $4.91. It sees about 29 pick-ups an hour, and the typical wait between requesting and being picked up is 6.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Highbridge",
+   "text": "Highbridge is a taxi zone in Bronx (zone id 119). Trips starting there have a median fare of $15.22 and a median price per mile of $5.99. It sees about 94 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Highbridge Park",
+   "text": "Highbridge Park is a taxi zone in Manhattan (zone id 120). Trips starting there have a median fare of $17.66 and a median price per mile of $5.11. It sees about 2 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Hillcrest/Pomonok",
+   "text": "Hillcrest/Pomonok is a taxi zone in Queens (zone id 121). Trips starting there have a median fare of $18.25 and a median price per mile of $5.43. It sees about 65 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Hollis",
+   "text": "Hollis is a taxi zone in Queens (zone id 122). Trips starting there have a median fare of $14.49 and a median price per mile of $5.75. It sees about 34 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Homecrest",
+   "text": "Homecrest is a taxi zone in Brooklyn (zone id 123). Trips starting there have a median fare of $12.60 and a median price per mile of $7.14. It sees about 93 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Howard Beach",
+   "text": "Howard Beach is a taxi zone in Queens (zone id 124). Trips starting there have a median fare of $15.20 and a median price per mile of $5.49. It sees about 44 pick-ups an hour, and the typical wait between requesting and being picked up is 5.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Hudson Sq",
+   "text": "Hudson Sq is a taxi zone in Manhattan (zone id 125). Trips starting there have a median fare of $25.75 and a median price per mile of $9.76. It sees about 92 pick-ups an hour, and the typical wait between requesting and being picked up is 4.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Hunts Point",
+   "text": "Hunts Point is a taxi zone in Bronx (zone id 126). Trips starting there have a median fare of $15.27 and a median price per mile of $5.68. It sees about 88 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Inwood",
+   "text": "Inwood is a taxi zone in Manhattan (zone id 127). Trips starting there have a median fare of $16.89 and a median price per mile of $5.25. It sees about 102 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Inwood Hill Park",
+   "text": "Inwood Hill Park is a taxi zone in Manhattan (zone id 128). Trips starting there have a median fare of $17.87 and a median price per mile of $5.55. It sees about 8 pick-ups an hour, and the typical wait between requesting and being picked up is 4.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Jackson Heights",
+   "text": "Jackson Heights is a taxi zone in Queens (zone id 129). Trips starting there have a median fare of $14.38 and a median price per mile of $6.52. It sees about 230 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Jamaica",
+   "text": "Jamaica is a taxi zone in Queens (zone id 130). Trips starting there have a median fare of $16.05 and a median price per mile of $5.96. It sees about 225 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Jamaica Estates",
+   "text": "Jamaica Estates is a taxi zone in Queens (zone id 131). Trips starting there have a median fare of $16.16 and a median price per mile of $5.52. It sees about 44 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: JFK Airport",
+   "text": "JFK Airport is a taxi zone in Queens (zone id 132). Trips starting there have a median fare of $61.85 and a median price per mile of $4.35. It sees about 352 pick-ups an hour, and the typical wait between requesting and being picked up is 6.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Kensington",
+   "text": "Kensington is a taxi zone in Brooklyn (zone id 133). Trips starting there have a median fare of $16.12 and a median price per mile of $6.32. It sees about 55 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Kew Gardens",
+   "text": "Kew Gardens is a taxi zone in Queens (zone id 134). Trips starting there have a median fare of $17.02 and a median price per mile of $5.55. It sees about 66 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Kew Gardens Hills",
+   "text": "Kew Gardens Hills is a taxi zone in Queens (zone id 135). Trips starting there have a median fare of $16.99 and a median price per mile of $5.64. It sees about 51 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Kingsbridge Heights",
+   "text": "Kingsbridge Heights is a taxi zone in Bronx (zone id 136). Trips starting there have a median fare of $15.15 and a median price per mile of $6.23. It sees about 71 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Kips Bay",
+   "text": "Kips Bay is a taxi zone in Manhattan (zone id 137). Trips starting there have a median fare of $20.86 and a median price per mile of $7.12. It sees about 134 pick-ups an hour, and the typical wait between requesting and being picked up is 4.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: LaGuardia Airport",
+   "text": "LaGuardia Airport is a taxi zone in Queens (zone id 138). Trips starting there have a median fare of $49.18 and a median price per mile of $5.34. It sees about 483 pick-ups an hour, and the typical wait between requesting and being picked up is 6.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Laurelton",
+   "text": "Laurelton is a taxi zone in Queens (zone id 139). Trips starting there have a median fare of $13.15 and a median price per mile of $5.88. It sees about 51 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Lenox Hill East",
+   "text": "Lenox Hill East is a taxi zone in Manhattan (zone id 140). Trips starting there have a median fare of $23.20 and a median price per mile of $6.46. It sees about 148 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Lenox Hill West",
+   "text": "Lenox Hill West is a taxi zone in Manhattan (zone id 141). Trips starting there have a median fare of $22.16 and a median price per mile of $7.62. It sees about 168 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Lincoln Square East",
+   "text": "Lincoln Square East is a taxi zone in Manhattan (zone id 142). Trips starting there have a median fare of $23.18 and a median price per mile of $8.41. It sees about 170 pick-ups an hour, and the typical wait between requesting and being picked up is 4.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Lincoln Square West",
+   "text": "Lincoln Square West is a taxi zone in Manhattan (zone id 143). Trips starting there have a median fare of $21.42 and a median price per mile of $8.10. It sees about 126 pick-ups an hour, and the typical wait between requesting and being picked up is 4.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Little Italy/NoLiTa",
+   "text": "Little Italy/NoLiTa is a taxi zone in Manhattan (zone id 144). Trips starting there have a median fare of $24.42 and a median price per mile of $9.63. It sees about 180 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Long Island City/Hunters Point",
+   "text": "Long Island City/Hunters Point is a taxi zone in Queens (zone id 145). Trips starting there have a median fare of $18.82 and a median price per mile of $6.25. It sees about 243 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Long Island City/Queens Plaza",
+   "text": "Long Island City/Queens Plaza is a taxi zone in Queens (zone id 146). Trips starting there have a median fare of $18.47 and a median price per mile of $6.27. It sees about 71 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Longwood",
+   "text": "Longwood is a taxi zone in Bronx (zone id 147). Trips starting there have a median fare of $15.97 and a median price per mile of $6.34. It sees about 58 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Lower East Side",
+   "text": "Lower East Side is a taxi zone in Manhattan (zone id 148). Trips starting there have a median fare of $23.39 and a median price per mile of $7.72. It sees about 261 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Madison",
+   "text": "Madison is a taxi zone in Brooklyn (zone id 149). Trips starting there have a median fare of $13.44 and a median price per mile of $6.85. It sees about 75 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Manhattan Beach",
+   "text": "Manhattan Beach is a taxi zone in Brooklyn (zone id 150). Trips starting there have a median fare of $14.31 and a median price per mile of $6.04. It sees about 30 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Manhattan Valley",
+   "text": "Manhattan Valley is a taxi zone in Manhattan (zone id 151). Trips starting there have a median fare of $18.55 and a median price per mile of $6.64. It sees about 74 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Manhattanville",
+   "text": "Manhattanville is a taxi zone in Manhattan (zone id 152). Trips starting there have a median fare of $16.24 and a median price per mile of $6.15. It sees about 60 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Marble Hill",
+   "text": "Marble Hill is a taxi zone in Manhattan (zone id 153). Trips starting there have a median fare of $13.51 and a median price per mile of $6.65. It sees about 26 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Marine Park/Floyd Bennett Field",
+   "text": "Marine Park/Floyd Bennett Field is a taxi zone in Brooklyn (zone id 154). Trips starting there have a median fare of $22.15 and a median price per mile of $5.72. It sees about 2 pick-ups an hour, and the typical wait between requesting and being picked up is 6.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Marine Park/Mill Basin",
+   "text": "Marine Park/Mill Basin is a taxi zone in Brooklyn (zone id 155). Trips starting there have a median fare of $17.00 and a median price per mile of $6.26. It sees about 80 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Mariners Harbor",
+   "text": "Mariners Harbor is a taxi zone in Staten Island (zone id 156). Trips starting there have a median fare of $13.39 and a median price per mile of $5.03. It sees about 41 pick-ups an hour, and the typical wait between requesting and being picked up is 6.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Maspeth",
+   "text": "Maspeth is a taxi zone in Queens (zone id 157). Trips starting there have a median fare of $16.87 and a median price per mile of $6.11. It sees about 94 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Meatpacking/West Village West",
+   "text": "Meatpacking/West Village West is a taxi zone in Manhattan (zone id 158). Trips starting there have a median fare of $25.05 and a median price per mile of $10.33. It sees about 146 pick-ups an hour, and the typical wait between requesting and being picked up is 4.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Melrose South",
+   "text": "Melrose South is a taxi zone in Bronx (zone id 159). Trips starting there have a median fare of $15.18 and a median price per mile of $6.82. It sees about 130 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Middle Village",
+   "text": "Middle Village is a taxi zone in Queens (zone id 160). Trips starting there have a median fare of $16.03 and a median price per mile of $6.17. It sees about 67 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Midtown Center",
+   "text": "Midtown Center is a taxi zone in Manhattan (zone id 161). Trips starting there have a median fare of $30.45 and a median price per mile of $11.16. It sees about 287 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Midtown East",
+   "text": "Midtown East is a taxi zone in Manhattan (zone id 162). Trips starting there have a median fare of $28.97 and a median price per mile of $9.69. It sees about 196 pick-ups an hour, and the typical wait between requesting and being picked up is 4.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Midtown North",
+   "text": "Midtown North is a taxi zone in Manhattan (zone id 163). Trips starting there have a median fare of $29.80 and a median price per mile of $10.80. It sees about 204 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Midtown South",
+   "text": "Midtown South is a taxi zone in Manhattan (zone id 164). Trips starting there have a median fare of $26.28 and a median price per mile of $9.44. It sees about 247 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Midwood",
+   "text": "Midwood is a taxi zone in Brooklyn (zone id 165). Trips starting there have a median fare of $15.18 and a median price per mile of $7.03. It sees about 92 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Morningside Heights",
+   "text": "Morningside Heights is a taxi zone in Manhattan (zone id 166). Trips starting there have a median fare of $17.26 and a median price per mile of $6.69. It sees about 111 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Morrisania/Melrose",
+   "text": "Morrisania/Melrose is a taxi zone in Bronx (zone id 167). Trips starting there have a median fare of $14.59 and a median price per mile of $6.74. It sees about 106 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Mott Haven/Port Morris",
+   "text": "Mott Haven/Port Morris is a taxi zone in Bronx (zone id 168). Trips starting there have a median fare of $16.14 and a median price per mile of $5.83. It sees about 184 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Mount Hope",
+   "text": "Mount Hope is a taxi zone in Bronx (zone id 169). Trips starting there have a median fare of $14.52 and a median price per mile of $6.40. It sees about 133 pick-ups an hour, and the typical wait between requesting and being picked up is 5.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Murray Hill",
+   "text": "Murray Hill is a taxi zone in Manhattan (zone id 170). Trips starting there have a median fare of $23.25 and a median price per mile of $8.96. It sees about 220 pick-ups an hour, and the typical wait between requesting and being picked up is 4.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Murray Hill-Queens",
+   "text": "Murray Hill-Queens is a taxi zone in Queens (zone id 171). Trips starting there have a median fare of $13.66 and a median price per mile of $5.91. It sees about 59 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: New Dorp/Midland Beach",
+   "text": "New Dorp/Midland Beach is a taxi zone in Staten Island (zone id 172). Trips starting there have a median fare of $17.01 and a median price per mile of $5.39. It sees about 19 pick-ups an hour, and the typical wait between requesting and being picked up is 6.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: North Corona",
+   "text": "North Corona is a taxi zone in Queens (zone id 173). Trips starting there have a median fare of $14.34 and a median price per mile of $6.29. It sees about 78 pick-ups an hour, and the typical wait between requesting and being picked up is 5.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Norwood",
+   "text": "Norwood is a taxi zone in Bronx (zone id 174). Trips starting there have a median fare of $15.92 and a median price per mile of $5.69. It sees about 116 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Oakland Gardens",
+   "text": "Oakland Gardens is a taxi zone in Queens (zone id 175). Trips starting there have a median fare of $18.62 and a median price per mile of $4.51. It sees about 21 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Oakwood",
+   "text": "Oakwood is a taxi zone in Staten Island (zone id 176). Trips starting there have a median fare of $16.94 and a median price per mile of $5.55. It sees about 10 pick-ups an hour, and the typical wait between requesting and being picked up is 7.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Ocean Hill",
+   "text": "Ocean Hill is a taxi zone in Brooklyn (zone id 177). Trips starting there have a median fare of $15.17 and a median price per mile of $6.67. It sees about 121 pick-ups an hour, and the typical wait between requesting and being picked up is 5.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Ocean Parkway South",
+   "text": "Ocean Parkway South is a taxi zone in Brooklyn (zone id 178). Trips starting there have a median fare of $13.33 and a median price per mile of $7.26. It sees about 31 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Old Astoria",
+   "text": "Old Astoria is a taxi zone in Queens (zone id 179). Trips starting there have a median fare of $16.88 and a median price per mile of $6.19. It sees about 104 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Ozone Park",
+   "text": "Ozone Park is a taxi zone in Queens (zone id 180). Trips starting there have a median fare of $13.55 and a median price per mile of $6.09. It sees about 51 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Park Slope",
+   "text": "Park Slope is a taxi zone in Brooklyn (zone id 181). Trips starting there have a median fare of $18.43 and a median price per mile of $7.07. It sees about 273 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Parkchester",
+   "text": "Parkchester is a taxi zone in Bronx (zone id 182). Trips starting there have a median fare of $15.21 and a median price per mile of $5.75. It sees about 75 pick-ups an hour, and the typical wait between requesting and being picked up is 5.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Pelham Bay",
+   "text": "Pelham Bay is a taxi zone in Bronx (zone id 183). Trips starting there have a median fare of $14.27 and a median price per mile of $4.68. It sees about 37 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Pelham Bay Park",
+   "text": "Pelham Bay Park is a taxi zone in Bronx (zone id 184). Trips starting there have a median fare of $13.35 and a median price per mile of $4.61. It sees about 6 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Pelham Parkway",
+   "text": "Pelham Parkway is a taxi zone in Bronx (zone id 185). Trips starting there have a median fare of $15.25 and a median price per mile of $5.49. It sees about 88 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Penn Station/Madison Sq West",
+   "text": "Penn Station/Madison Sq West is a taxi zone in Manhattan (zone id 186). Trips starting there have a median fare of $25.36 and a median price per mile of $9.38. It sees about 148 pick-ups an hour, and the typical wait between requesting and being picked up is 4.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Port Richmond",
+   "text": "Port Richmond is a taxi zone in Staten Island (zone id 187). Trips starting there have a median fare of $14.01 and a median price per mile of $5.23. It sees about 22 pick-ups an hour, and the typical wait between requesting and being picked up is 6.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Prospect-Lefferts Gardens",
+   "text": "Prospect-Lefferts Gardens is a taxi zone in Brooklyn (zone id 188). Trips starting there have a median fare of $16.11 and a median price per mile of $6.85. It sees about 214 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Prospect Heights",
+   "text": "Prospect Heights is a taxi zone in Brooklyn (zone id 189). Trips starting there have a median fare of $18.35 and a median price per mile of $7.03. It sees about 104 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Prospect Park",
+   "text": "Prospect Park is a taxi zone in Brooklyn (zone id 190). Trips starting there have a median fare of $17.92 and a median price per mile of $6.77. It sees about 16 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Queens Village",
+   "text": "Queens Village is a taxi zone in Queens (zone id 191). Trips starting there have a median fare of $16.04 and a median price per mile of $5.33. It sees about 74 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Queensboro Hill",
+   "text": "Queensboro Hill is a taxi zone in Queens (zone id 192). Trips starting there have a median fare of $16.89 and a median price per mile of $4.96. It sees about 38 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Queensbridge/Ravenswood",
+   "text": "Queensbridge/Ravenswood is a taxi zone in Queens (zone id 193). Trips starting there have a median fare of $15.68 and a median price per mile of $6.52. It sees about 49 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Randalls Island",
+   "text": "Randalls Island is a taxi zone in Manhattan (zone id 194). Trips starting there have a median fare of $30.07 and a median price per mile of $5.36. It sees about 5 pick-ups an hour, and the typical wait between requesting and being picked up is 7.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Red Hook",
+   "text": "Red Hook is a taxi zone in Brooklyn (zone id 195). Trips starting there have a median fare of $23.65 and a median price per mile of $6.01. It sees about 55 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Rego Park",
+   "text": "Rego Park is a taxi zone in Queens (zone id 196). Trips starting there have a median fare of $16.93 and a median price per mile of $5.84. It sees about 78 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Richmond Hill",
+   "text": "Richmond Hill is a taxi zone in Queens (zone id 197). Trips starting there have a median fare of $14.43 and a median price per mile of $6.27. It sees about 127 pick-ups an hour, and the typical wait between requesting and being picked up is 5.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Ridgewood",
+   "text": "Ridgewood is a taxi zone in Queens (zone id 198). Trips starting there have a median fare of $17.00 and a median price per mile of $6.53. It sees about 187 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Rikers Island",
+   "text": "Rikers Island is a taxi zone in Bronx (zone id 199). Trips starting there have a median fare of $46.17 and a median price per mile of $0.00. It sees about 0 pick-ups an hour, and the typical wait between requesting and being picked up is 14.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Riverdale/North Riverdale/Fieldston",
+   "text": "Riverdale/North Riverdale/Fieldston is a taxi zone in Bronx (zone id 200). Trips starting there have a median fare of $19.04 and a median price per mile of $4.76. It sees about 54 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Rockaway Park",
+   "text": "Rockaway Park is a taxi zone in Queens (zone id 201). Trips starting there have a median fare of $16.85 and a median price per mile of $5.44. It sees about 18 pick-ups an hour, and the typical wait between requesting and being picked up is 7.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Roosevelt Island",
+   "text": "Roosevelt Island is a taxi zone in Manhattan (zone id 202). Trips starting there have a median fare of $25.79 and a median price per mile of $5.77. It sees about 17 pick-ups an hour, and the typical wait between requesting and being picked up is 6.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Rosedale",
+   "text": "Rosedale is a taxi zone in Queens (zone id 203). Trips starting there have a median fare of $15.16 and a median price per mile of $5.38. It sees about 42 pick-ups an hour, and the typical wait between requesting and being picked up is 6.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Rossville/Woodrow",
+   "text": "Rossville/Woodrow is a taxi zone in Staten Island (zone id 204). Trips starting there have a median fare of $18.65 and a median price per mile of $4.65. It sees about 7 pick-ups an hour, and the typical wait between requesting and being picked up is 6.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Saint Albans",
+   "text": "Saint Albans is a taxi zone in Queens (zone id 205). Trips starting there have a median fare of $14.29 and a median price per mile of $5.97. It sees about 113 pick-ups an hour, and the typical wait between requesting and being picked up is 6.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Saint George/New Brighton",
+   "text": "Saint George/New Brighton is a taxi zone in Staten Island (zone id 206). Trips starting there have a median fare of $13.30 and a median price per mile of $5.72. It sees about 61 pick-ups an hour, and the typical wait between requesting and being picked up is 6.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Saint Michaels Cemetery/Woodside",
+   "text": "Saint Michaels Cemetery/Woodside is a taxi zone in Queens (zone id 207). Trips starting there have a median fare of $11.66 and a median price per mile of $6.18. It sees about 5 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Schuylerville/Edgewater Park",
+   "text": "Schuylerville/Edgewater Park is a taxi zone in Bronx (zone id 208). Trips starting there have a median fare of $16.09 and a median price per mile of $4.68. It sees about 91 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Seaport",
+   "text": "Seaport is a taxi zone in Manhattan (zone id 209). Trips starting there have a median fare of $26.65 and a median price per mile of $7.07. It sees about 56 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Sheepshead Bay",
+   "text": "Sheepshead Bay is a taxi zone in Brooklyn (zone id 210). Trips starting there have a median fare of $13.27 and a median price per mile of $6.43. It sees about 97 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: SoHo",
+   "text": "SoHo is a taxi zone in Manhattan (zone id 211). Trips starting there have a median fare of $25.68 and a median price per mile of $10.56. It sees about 146 pick-ups an hour, and the typical wait between requesting and being picked up is 4.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Soundview/Bruckner",
+   "text": "Soundview/Bruckner is a taxi zone in Bronx (zone id 212). Trips starting there have a median fare of $13.94 and a median price per mile of $5.23. It sees about 79 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Soundview/Castle Hill",
+   "text": "Soundview/Castle Hill is a taxi zone in Bronx (zone id 213). Trips starting there have a median fare of $15.19 and a median price per mile of $5.07. It sees about 140 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: South Beach/Dongan Hills",
+   "text": "South Beach/Dongan Hills is a taxi zone in Staten Island (zone id 214). Trips starting there have a median fare of $17.05 and a median price per mile of $5.36. It sees about 25 pick-ups an hour, and the typical wait between requesting and being picked up is 6.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: South Jamaica",
+   "text": "South Jamaica is a taxi zone in Queens (zone id 215). Trips starting there have a median fare of $12.99 and a median price per mile of $6.46. It sees about 87 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: South Ozone Park",
+   "text": "South Ozone Park is a taxi zone in Queens (zone id 216). Trips starting there have a median fare of $13.58 and a median price per mile of $6.12. It sees about 179 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: South Williamsburg",
+   "text": "South Williamsburg is a taxi zone in Brooklyn (zone id 217). Trips starting there have a median fare of $11.63 and a median price per mile of $9.79. It sees about 53 pick-ups an hour, and the typical wait between requesting and being picked up is 6.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Springfield Gardens North",
+   "text": "Springfield Gardens North is a taxi zone in Queens (zone id 218). Trips starting there have a median fare of $15.21 and a median price per mile of $5.70. It sees about 57 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Springfield Gardens South",
+   "text": "Springfield Gardens South is a taxi zone in Queens (zone id 219). Trips starting there have a median fare of $16.43 and a median price per mile of $5.22. It sees about 46 pick-ups an hour, and the typical wait between requesting and being picked up is 5.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Spuyten Duyvil/Kingsbridge",
+   "text": "Spuyten Duyvil/Kingsbridge is a taxi zone in Bronx (zone id 220). Trips starting there have a median fare of $14.59 and a median price per mile of $5.85. It sees about 99 pick-ups an hour, and the typical wait between requesting and being picked up is 5.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Stapleton",
+   "text": "Stapleton is a taxi zone in Staten Island (zone id 221). Trips starting there have a median fare of $12.51 and a median price per mile of $5.74. It sees about 42 pick-ups an hour, and the typical wait between requesting and being picked up is 6.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Starrett City",
+   "text": "Starrett City is a taxi zone in Brooklyn (zone id 222). Trips starting there have a median fare of $14.94 and a median price per mile of $6.12. It sees about 36 pick-ups an hour, and the typical wait between requesting and being picked up is 6.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Steinway",
+   "text": "Steinway is a taxi zone in Queens (zone id 223). Trips starting there have a median fare of $15.45 and a median price per mile of $6.19. It sees about 143 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Stuy Town/Peter Cooper Village",
+   "text": "Stuy Town/Peter Cooper Village is a taxi zone in Manhattan (zone id 224). Trips starting there have a median fare of $20.60 and a median price per mile of $7.48. It sees about 50 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Stuyvesant Heights",
+   "text": "Stuyvesant Heights is a taxi zone in Brooklyn (zone id 225). Trips starting there have a median fare of $16.75 and a median price per mile of $7.03. It sees about 220 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Sunnyside",
+   "text": "Sunnyside is a taxi zone in Queens (zone id 226). Trips starting there have a median fare of $16.92 and a median price per mile of $6.22. It sees about 181 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Sunset Park East",
+   "text": "Sunset Park East is a taxi zone in Brooklyn (zone id 227). Trips starting there have a median fare of $14.50 and a median price per mile of $6.78. It sees about 74 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Sunset Park West",
+   "text": "Sunset Park West is a taxi zone in Brooklyn (zone id 228). Trips starting there have a median fare of $16.87 and a median price per mile of $6.42. It sees about 146 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Sutton Place/Turtle Bay North",
+   "text": "Sutton Place/Turtle Bay North is a taxi zone in Manhattan (zone id 229). Trips starting there have a median fare of $23.05 and a median price per mile of $8.41. It sees about 143 pick-ups an hour, and the typical wait between requesting and being picked up is 4.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Times Sq/Theatre District",
+   "text": "Times Sq/Theatre District is a taxi zone in Manhattan (zone id 230). Trips starting there have a median fare of $30.40 and a median price per mile of $9.90. It sees about 282 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: TriBeCa/Civic Center",
+   "text": "TriBeCa/Civic Center is a taxi zone in Manhattan (zone id 231). Trips starting there have a median fare of $26.30 and a median price per mile of $9.13. It sees about 291 pick-ups an hour, and the typical wait between requesting and being picked up is 4.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Two Bridges/Seward Park",
+   "text": "Two Bridges/Seward Park is a taxi zone in Manhattan (zone id 232). Trips starting there have a median fare of $21.76 and a median price per mile of $6.69. It sees about 110 pick-ups an hour, and the typical wait between requesting and being picked up is 5.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: UN/Turtle Bay South",
+   "text": "UN/Turtle Bay South is a taxi zone in Manhattan (zone id 233). Trips starting there have a median fare of $22.63 and a median price per mile of $8.61. It sees about 132 pick-ups an hour, and the typical wait between requesting and being picked up is 4.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Union Sq",
+   "text": "Union Sq is a taxi zone in Manhattan (zone id 234). Trips starting there have a median fare of $24.89 and a median price per mile of $10.18. It sees about 272 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: University Heights/Morris Heights",
+   "text": "University Heights/Morris Heights is a taxi zone in Bronx (zone id 235). Trips starting there have a median fare of $15.21 and a median price per mile of $6.00. It sees about 119 pick-ups an hour, and the typical wait between requesting and being picked up is 5.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Upper East Side North",
+   "text": "Upper East Side North is a taxi zone in Manhattan (zone id 236). Trips starting there have a median fare of $23.11 and a median price per mile of $8.53. It sees about 191 pick-ups an hour, and the typical wait between requesting and being picked up is 4.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Upper East Side South",
+   "text": "Upper East Side South is a taxi zone in Manhattan (zone id 237). Trips starting there have a median fare of $24.77 and a median price per mile of $10.07. It sees about 225 pick-ups an hour, and the typical wait between requesting and being picked up is 3.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Upper West Side North",
+   "text": "Upper West Side North is a taxi zone in Manhattan (zone id 238). Trips starting there have a median fare of $19.63 and a median price per mile of $7.05. It sees about 130 pick-ups an hour, and the typical wait between requesting and being picked up is 4.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Upper West Side South",
+   "text": "Upper West Side South is a taxi zone in Manhattan (zone id 239). Trips starting there have a median fare of $21.76 and a median price per mile of $7.71. It sees about 156 pick-ups an hour, and the typical wait between requesting and being picked up is 4.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Van Cortlandt Park",
+   "text": "Van Cortlandt Park is a taxi zone in Bronx (zone id 240). Trips starting there have a median fare of $14.29 and a median price per mile of $5.20. It sees about 14 pick-ups an hour, and the typical wait between requesting and being picked up is 5.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Van Cortlandt Village",
+   "text": "Van Cortlandt Village is a taxi zone in Bronx (zone id 241). Trips starting there have a median fare of $14.76 and a median price per mile of $6.12. It sees about 103 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Van Nest/Morris Park",
+   "text": "Van Nest/Morris Park is a taxi zone in Bronx (zone id 242). Trips starting there have a median fare of $15.23 and a median price per mile of $5.93. It sees about 112 pick-ups an hour, and the typical wait between requesting and being picked up is 5.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Washington Heights North",
+   "text": "Washington Heights North is a taxi zone in Manhattan (zone id 243). Trips starting there have a median fare of $16.92 and a median price per mile of $5.54. It sees about 144 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Washington Heights South",
+   "text": "Washington Heights South is a taxi zone in Manhattan (zone id 244). Trips starting there have a median fare of $17.89 and a median price per mile of $5.17. It sees about 202 pick-ups an hour, and the typical wait between requesting and being picked up is 5.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: West Brighton",
+   "text": "West Brighton is a taxi zone in Staten Island (zone id 245). Trips starting there have a median fare of $13.66 and a median price per mile of $5.72. It sees about 23 pick-ups an hour, and the typical wait between requesting and being picked up is 6.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: West Chelsea/Hudson Yards",
+   "text": "West Chelsea/Hudson Yards is a taxi zone in Manhattan (zone id 246). Trips starting there have a median fare of $26.13 and a median price per mile of $9.99. It sees about 271 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: West Concourse",
+   "text": "West Concourse is a taxi zone in Bronx (zone id 247). Trips starting there have a median fare of $14.68 and a median price per mile of $6.48. It sees about 147 pick-ups an hour, and the typical wait between requesting and being picked up is 5.6 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: West Farms/Bronx River",
+   "text": "West Farms/Bronx River is a taxi zone in Bronx (zone id 248). Trips starting there have a median fare of $14.71 and a median price per mile of $5.13. It sees about 70 pick-ups an hour, and the typical wait between requesting and being picked up is 5.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: West Village",
+   "text": "West Village is a taxi zone in Manhattan (zone id 249). Trips starting there have a median fare of $23.13 and a median price per mile of $9.90. It sees about 227 pick-ups an hour, and the typical wait between requesting and being picked up is 4.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Westchester Village/Unionport",
+   "text": "Westchester Village/Unionport is a taxi zone in Bronx (zone id 250). Trips starting there have a median fare of $14.47 and a median price per mile of $5.53. It sees about 72 pick-ups an hour, and the typical wait between requesting and being picked up is 5.1 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Westerleigh",
+   "text": "Westerleigh is a taxi zone in Staten Island (zone id 251). Trips starting there have a median fare of $14.30 and a median price per mile of $5.47. It sees about 24 pick-ups an hour, and the typical wait between requesting and being picked up is 6.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Whitestone",
+   "text": "Whitestone is a taxi zone in Queens (zone id 252). Trips starting there have a median fare of $17.05 and a median price per mile of $4.94. It sees about 38 pick-ups an hour, and the typical wait between requesting and being picked up is 6.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Willets Point",
+   "text": "Willets Point is a taxi zone in Queens (zone id 253). Trips starting there have a median fare of $22.76 and a median price per mile of $4.56. It sees about 1 pick-ups an hour, and the typical wait between requesting and being picked up is 6.2 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Williamsbridge/Olinville",
+   "text": "Williamsbridge/Olinville is a taxi zone in Bronx (zone id 254). Trips starting there have a median fare of $13.65 and a median price per mile of $5.94. It sees about 130 pick-ups an hour, and the typical wait between requesting and being picked up is 5.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Williamsburg (North Side)",
+   "text": "Williamsburg (North Side) is a taxi zone in Brooklyn (zone id 255). Trips starting there have a median fare of $21.48 and a median price per mile of $7.30. It sees about 276 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Williamsburg (South Side)",
+   "text": "Williamsburg (South Side) is a taxi zone in Brooklyn (zone id 256). Trips starting there have a median fare of $20.36 and a median price per mile of $7.26. It sees about 234 pick-ups an hour, and the typical wait between requesting and being picked up is 4.7 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Windsor Terrace",
+   "text": "Windsor Terrace is a taxi zone in Brooklyn (zone id 257). Trips starting there have a median fare of $17.89 and a median price per mile of $6.19. It sees about 44 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Woodhaven",
+   "text": "Woodhaven is a taxi zone in Queens (zone id 258). Trips starting there have a median fare of $16.31 and a median price per mile of $5.93. It sees about 92 pick-ups an hour, and the typical wait between requesting and being picked up is 5.3 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Woodlawn/Wakefield",
+   "text": "Woodlawn/Wakefield is a taxi zone in Bronx (zone id 259). Trips starting there have a median fare of $15.23 and a median price per mile of $5.25. It sees about 77 pick-ups an hour, and the typical wait between requesting and being picked up is 6.0 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Woodside",
+   "text": "Woodside is a taxi zone in Queens (zone id 260). Trips starting there have a median fare of $14.31 and a median price per mile of $6.30. It sees about 133 pick-ups an hour, and the typical wait between requesting and being picked up is 4.4 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: World Trade Center",
+   "text": "World Trade Center is a taxi zone in Manhattan (zone id 261). Trips starting there have a median fare of $31.96 and a median price per mile of $7.80. It sees about 93 pick-ups an hour, and the typical wait between requesting and being picked up is 4.8 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Yorkville East",
+   "text": "Yorkville East is a taxi zone in Manhattan (zone id 262). Trips starting there have a median fare of $21.99 and a median price per mile of $6.69. It sees about 92 pick-ups an hour, and the typical wait between requesting and being picked up is 4.9 minutes."
+  },
+  {
+   "topic": "zone",
+   "title": "zone: Yorkville West",
+   "text": "Yorkville West is a taxi zone in Manhattan (zone id 263). Trips starting there have a median fare of $21.76 and a median price per mile of $6.58. It sees about 139 pick-ups an hour, and the typical wait between requesting and being picked up is 4.5 minutes."
+  }
+ ]
+}

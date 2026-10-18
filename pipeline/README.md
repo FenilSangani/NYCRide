@@ -13,6 +13,7 @@ python clean_trips.py 2025-12  # one month
 python export_web_data.py      # the JSON the site reads
 python train_fare.py           # the fare model + range + distance lookup
 python train_demand.py         # the demand model
+python build_knowledge.py      # the facts the Ask page answers from
 ```
 
 Models and their metrics land in `models/`. The API loads them at start-up.
@@ -122,3 +123,21 @@ baseline here — about R² 0.94 — so the model has to earn its place.
   registering it in `config.TRIP_MONTHS`, and fetching its weather JSON.
 - **`tips` is in the cleaned files but must not be a model input** — it is only known
   after the ride.
+
+## The Ask fact base
+
+**`build_knowledge.py`** writes `models/knowledge.json`, the 312 facts the Ask page
+answers from. Nothing in it is typed by hand: the model scores, every baseline, the
+cleaning thresholds, the rejected experiments and all 261 zones are read out of the
+files the rest of this pipeline writes. Retrain and re-run it, and the answers move
+with the model instead of quietly going stale.
+
+Two things are worth knowing before editing it:
+
+- **One fact per chunk.** Retrieval scores whole chunks, so a chunk that needs its
+  neighbours to make sense will be quoted alone and read as nonsense.
+- **`KEYWORDS` exists for vocabulary, not content.** It attaches words a person is
+  likely to use to the fact that answers them, indexed but never shown. "Which
+  algorithm did you use" matched nothing until `algorithm` was attached to the fact
+  about gradient boosting, because the fact itself never used the word. The script
+  fails loudly if `KEYWORDS` names a fact that no longer exists.

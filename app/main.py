@@ -9,6 +9,7 @@ Run from the project root:
 """
 import json
 import math
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -18,9 +19,36 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 
+# Imported as a package by uvicorn (app.main) but as a plain module by some
+# hosts, so the sibling import has to work either way.
+try:
+    from . import rag
+except ImportError:                                   # pragma: no cover
+    import rag
+
 ROOT = Path(__file__).resolve().parent.parent
 MODELS = ROOT / "models"
 WEB = ROOT / "web"
+
+
+def load_dotenv():
+    """Read .env for local runs, without a dependency and without overriding.
+
+    A real environment variable always wins, so the host's own settings are
+    untouched - .env only fills in what is missing, and it is git-ignored.
+    """
+    path = ROOT / ".env"
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        os.environ.setdefault(name.strip(), value.strip())
+
+
+load_dotenv()
 
 AIRPORT_ZONES = {1, 132, 138}      # Newark, JFK, LaGuardia
 DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -322,6 +350,21 @@ def scenarios(pu: int, do: int, hour: int = Query(17, ge=0, le=23),
     return {"baseline": round(baseline, 2), "options": out}
 
 
+ASK = rag.Ask(
+    MODELS / "knowledge.json",
+    [(int(z), r["zone"], r["borough"]) for z, r in ZONES.iterrows()],
+    # the router prices a trip through the same endpoint the pages use, so an
+    # answer can never quote a number the site would not show
+    lambda pu, do, hour, dow: estimate(pu, do, hour, dow, 0),
+)
+
+
+@app.get("/api/ask")
+def ask(q: str = Query(..., min_length=2, max_length=500)):
+    """Answer a question about the project, its data or a particular trip."""
+    return ASK.answer(q)
+
+
 @app.get("/api/meta")
 def meta():
     """Everything the Model Lab section prints."""
@@ -335,6 +378,7 @@ def meta():
             "provider_share": SUMMARY["provider_share"],
         },
         "distance": {"zone_pairs": len(PAIR_MILES), "detour_factor": DETOUR},
+        "knowledge_facts": len(ASK.facts),
     }
 
 

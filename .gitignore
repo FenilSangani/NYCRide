@@ -30,3 +30,10 @@ desktop.ini
 
 # Logs and scratch output
 *.log
+
+# Secrets. The Ask feature reads GEMINI_API_KEY from the environment; locally
+# that comes from .env, and on the host it is set in the project's settings.
+# A key must never be committed.
+.env
+.env.*
+!.env.example

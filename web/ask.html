@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NYCRide — ask</title>
+<meta name="description" content="Ask anything about the NYCRide data, the fare model or a particular trip, and get an answer built from the project's own records.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="static/css/styles.css?v=10">
+<link rel="stylesheet" href="static/css/predictor.css?v=10">
+<link rel="stylesheet" href="static/css/ask.css?v=10">
+<script>
+  /* Apply a saved theme before first paint, or it flashes the other one. */
+  try {
+    var t = localStorage.getItem("nycride-theme");
+    if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+  } catch (e) { /* private mode: stay on the default */ }
+</script>
+</head>
+<body>
+
+<header class="nav wrap">
+  <div class="brand">
+    <a class="brand__name" href="index.html" style="text-decoration: none">NYCRide</a>
+  </div>
+  <nav class="nav__links" aria-label="Sections">
+    <a href="index.html">Overview</a>
+    <a href="predictor.html">Predictor</a>
+    <a href="ask.html" aria-current="page">Ask</a>
+  </nav>
+
+  <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch to light theme">
+    <svg class="theme-toggle__sun" width="17" height="17" viewBox="0 0 20 20" aria-hidden="true">
+      <circle cx="10" cy="10" r="3.6" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+      <g stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <line x1="10" y1="1.8" x2="10" y2="3.4"></line>
+        <line x1="10" y1="16.6" x2="10" y2="18.2"></line>
+        <line x1="1.8" y1="10" x2="3.4" y2="10"></line>
+        <line x1="16.6" y1="10" x2="18.2" y2="10"></line>
+        <line x1="4.3" y1="4.3" x2="5.4" y2="5.4"></line>
+        <line x1="14.6" y1="14.6" x2="15.7" y2="15.7"></line>
+        <line x1="4.3" y1="15.7" x2="5.4" y2="14.6"></line>
+        <line x1="14.6" y1="5.4" x2="15.7" y2="4.3"></line>
+      </g>
+    </svg>
+    <svg class="theme-toggle__moon" width="17" height="17" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+    </svg>
+  </button>
+
+  <a class="btn btn--ghost" href="predictor.html">Plan a trip</a>
+</header>
+
+<main class="wrap">
+
+  <div class="page-head">
+    <h1>Ask</h1>
+    <p>
+      Ask anything about this project — the data, how the model works, what it
+      scores, any taxi zone, or what a particular trip would cost. Answers are
+      built from the project's own records, and a question about a real trip is
+      sent to the fare model rather than looked up.
+    </p>
+  </div>
+
+  <form class="ask-form" id="ask-form" autocomplete="off">
+    <input class="ask-input" id="ask-input" type="text" maxlength="500"
+           placeholder="Why was weather dropped from the model?"
+           aria-label="Your question">
+    <button class="btn btn--solid" id="ask-send" type="submit">Ask</button>
+  </form>
+
+  <div class="ask-chips" id="ask-chips">
+    <span class="ask-chips__label">Try</span>
+    <button type="button" class="chip">Which algorithm did you use, and why?</button>
+    <button type="button" class="chip">How accurate is the model, really?</button>
+    <button type="button" class="chip">What does Midtown Center to JFK Airport cost on Friday at 5pm?</button>
+    <button type="button" class="chip">What is the median fare in Astoria?</button>
+    <button type="button" class="chip">Why was weather dropped?</button>
+    <button type="button" class="chip">What are the weaknesses of this project?</button>
+    <button type="button" class="chip">When is the cheapest time to travel?</button>
+    <button type="button" class="chip">How was the data cleaned?</button>
+  </div>
+
+  <section class="ask-out" id="ask-out" hidden>
+    <div class="card ask-answer" id="ask-answer"></div>
+
+    <div class="card ask-priced" id="ask-priced" hidden>
+      <p class="label" style="margin-bottom: 14px">Priced by the model</p>
+      <dl class="kv" id="ask-priced-kv"></dl>
+      <p class="note" style="margin-bottom: 0">
+        This is a live prediction for the trip in your question, not a figure
+        read out of a table.
+      </p>
+    </div>
+
+    <details class="card ask-sources" id="ask-sources">
+      <summary>What this answer was built from</summary>
+      <div id="ask-sources-list"></div>
+    </details>
+  </section>
+
+  <p class="ask-foot">
+    Retrieval over <b id="ask-count">the project's</b> facts generated from the
+    trained models and the cleaned data. The answer is written by a language
+    model from those facts only — it is told not to use anything else, and not
+    to do arithmetic on the numbers it is given.
+  </p>
+
+</main>
+
+<script src="static/js/ask.js?v=10"></script>
+</body>
+</html>

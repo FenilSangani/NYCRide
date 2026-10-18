@@ -16,3 +16,7 @@ __pycache__/
 # Pipeline scripts rebuild the data; the deployed API never runs them.
 pipeline/
 requirements-pipeline.txt
+
+# Secrets never ride along in the upload; set them in the project settings.
+.env
+.env.*

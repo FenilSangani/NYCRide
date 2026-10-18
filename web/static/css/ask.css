@@ -1,0 +1,196 @@
+/* ---------- the Ask page ---------- */
+
+.ask-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.ask-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 18px;
+  font: 400 15.5px/1.4 var(--sans);
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+}
+
+.ask-input::placeholder { color: var(--ink-3); }
+
+.ask-input:focus {
+  outline: none;
+  border-color: var(--bar-hi);
+}
+
+.ask-form .btn { min-height: 52px; padding: 0 26px; flex: none; }
+.ask-form .btn[disabled] { opacity: 0.55; cursor: progress; }
+
+/* ---------- suggestions ---------- */
+
+.ask-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.ask-chips__label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-right: 2px;
+}
+
+.chip {
+  padding: 7px 13px;
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+
+.chip:hover {
+  background: var(--card-2);
+  border-color: var(--line-2);
+  color: var(--ink);
+}
+
+/* ---------- the answer ---------- */
+
+.ask-out {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 26px;
+}
+
+/* display:flex beats the browser's own [hidden] rule, so it has to be said
+   again here or the empty answer card shows before anything is asked */
+.ask-out[hidden],
+.ask-priced[hidden],
+.ask-sources[hidden] { display: none; }
+
+.ask-answer {
+  font-size: 15.5px;
+  line-height: 1.68;
+  color: var(--ink);
+}
+
+.ask-answer p { margin: 0 0 13px; }
+.ask-answer p:last-child { margin-bottom: 0; }
+.ask-answer b { font-weight: 600; }
+.ask-answer ul { margin: 0 0 13px; padding-left: 20px; }
+.ask-answer li { margin-bottom: 7px; }
+.ask-answer li:last-child { margin-bottom: 0; }
+
+.ask-answer code {
+  font: 400 13.5px var(--mono);
+  background: var(--card-2);
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+}
+
+/* the wait is six seconds and up, so it has to look deliberate */
+.ask-thinking {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--ink-2);
+  font-size: 14.5px;
+}
+
+.ask-thinking__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bar-hi);
+  flex: none;
+  animation: ask-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes ask-pulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50%      { opacity: 1;    transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-thinking__dot { animation: none; opacity: 0.8; }
+}
+
+.ask-error {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin: 10px 0 0;
+}
+
+/* ---------- the priced trip ---------- */
+
+.ask-priced .kv { margin: 0; }
+
+/* ---------- where the answer came from ---------- */
+
+.ask-sources summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.ask-sources summary:hover { color: var(--ink-2); }
+.ask-sources[open] summary { margin-bottom: 16px; }
+
+.ask-source {
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+}
+
+.ask-source:first-child { border-top: 0; padding-top: 0; }
+.ask-source:last-child { padding-bottom: 0; }
+
+.ask-source__top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.ask-source__title { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+
+.ask-source__topic {
+  font: 500 10px var(--sans);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: auto;
+  flex: none;
+}
+
+.ask-source__text { font-size: 13.5px; line-height: 1.6; color: var(--ink-2); margin: 0; }
+
+.ask-foot {
+  margin: 30px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+.ask-foot b { color: var(--ink-2); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .ask-form { flex-direction: column; }
+  .ask-form .btn { width: 100%; }
+}
