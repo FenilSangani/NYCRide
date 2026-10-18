@@ -1,0 +1,18 @@
+# Keep 4.5 GB of trip parquet out of the upload. A deploy from Git only sends
+# committed files, so .gitignore already covers that case, but `vercel deploy`
+# from this folder uploads what is on disk - without this it would try to send
+# the whole DataSets tree.
+#
+# The one file the API needs at start-up is the zone lookup, so it is kept.
+DataSets/*
+!DataSets/Zones/
+DataSets/Zones/*
+!DataSets/Zones/nyc_zones (cleaned).csv
+
+.venv/
+__pycache__/
+*.log
+
+# Pipeline scripts rebuild the data; the deployed API never runs them.
+pipeline/
+requirements-pipeline.txt

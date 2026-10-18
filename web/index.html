@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NYCRide — what a New York ride costs, and when</title>
+<meta name="description" content="78 million NYC Uber and Lyft trips, read zone by zone and hour by hour: where rides begin, what they cost, and how the hour changes the price.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="static/css/styles.css?v=10">
+<script>
+  /* Apply a saved theme before first paint, or it flashes the other one. */
+  try {
+    var t = localStorage.getItem("nycride-theme");
+    if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+  } catch (e) { /* private mode: stay on the default */ }
+</script>
+</head>
+<body>
+
+<header class="nav wrap">
+  <div class="brand">
+    <span class="brand__name">NYCRide</span>
+  </div>
+  <nav class="nav__links" aria-label="Sections">
+    <a href="#hours">Hourly data</a>
+    <a href="#tools">Tools</a>
+  </nav>
+  <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch to light theme">
+    <svg class="theme-toggle__sun" width="17" height="17" viewBox="0 0 20 20" aria-hidden="true">
+      <circle cx="10" cy="10" r="3.6" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+      <g stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <line x1="10" y1="1.8" x2="10" y2="3.4"></line>
+        <line x1="10" y1="16.6" x2="10" y2="18.2"></line>
+        <line x1="1.8" y1="10" x2="3.4" y2="10"></line>
+        <line x1="16.6" y1="10" x2="18.2" y2="10"></line>
+        <line x1="4.3" y1="4.3" x2="5.4" y2="5.4"></line>
+        <line x1="14.6" y1="14.6" x2="15.7" y2="15.7"></line>
+        <line x1="4.3" y1="15.7" x2="5.4" y2="14.6"></line>
+        <line x1="14.6" y1="5.4" x2="15.7" y2="4.3"></line>
+      </g>
+    </svg>
+    <svg class="theme-toggle__moon" width="17" height="17" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+    </svg>
+  </button>
+
+  <a class="btn btn--solid" href="predictor.html">
+    Launch predictor
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M4 12 12 4M6 4h6v6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  </a>
+</header>
+
+<main>
+
+  <section class="hero wrap">
+    <div>
+      <span class="pill">
+        <span class="pill__dot" aria-hidden="true"></span>
+        NYC TLC trip record dataset
+      </span>
+
+      <h1>New York City Ride Fare Prediction</h1>
+
+      <p class="hero__lede">
+        Built on <span data-fill="trips_long">78,211,750</span> cleaned Uber and Lyft trips from the
+        Taxi &amp; Limousine Commission, covering <span data-fill="month_list">four months</span> and
+        <span data-fill="zones">261</span> taxi zones — where rides begin, what they cost, and how much
+        of that is simply the hour you leave.
+      </p>
+
+      <div class="hero__actions">
+        <a class="btn btn--solid btn--lg" href="predictor.html">
+          Get started
+          <svg width="15" height="15" viewBox="0 0 18 18" aria-hidden="true">
+            <path d="M2.5 9H15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+            <path d="M10.5 4.5 15 9l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </a>
+        <a class="btn btn--ghost btn--lg" href="#hours">View hourly analysis</a>
+      </div>
+
+      <dl class="hero__stats">
+        <div>
+          <dd data-fill="trips_short">78.2M</dd>
+          <dt>NYC rides analysed</dt>
+        </div>
+        <div>
+          <dd data-fill="zones">261</dd>
+          <dt>Taxi zones mapped</dt>
+        </div>
+        <div>
+          <dd data-fill="swing">+48%</dd>
+          <dt>Cheapest to dearest hour</dt>
+        </div>
+      </dl>
+    </div>
+
+    <div class="card">
+      <div class="mapcard__head">
+        <div class="mapcard__title">
+          <p class="label">Zone activity preview</p>
+          <h2 data-fill="figure_title">Where the rides begin</h2>
+        </div>
+        <div class="chips" role="group" aria-label="Choose what the map shows">
+          <button type="button" data-layer="trips" aria-pressed="true">Trips</button>
+          <button type="button" data-layer="fare" aria-pressed="false">Fare</button>
+          <button type="button" data-layer="wait" aria-pressed="false">Wait</button>
+        </div>
+      </div>
+
+      <div id="map-canvas" class="map" role="application" aria-label="Map of New York City taxi zones, shaded by the measure chosen above">
+        <p class="map__loading">Loading trip data…</p>
+      </div>
+
+      <div class="legend">
+        <span id="legend-title">Trips started per hour</span>
+        <span class="legend__scale" id="legend-scale"></span>
+        <span class="legend__note">Quantile bands</span>
+      </div>
+
+      <p class="readout__zone">
+        Showing <b id="readout-name">all zones</b> <span id="readout-where">· city-wide average</span>
+      </p>
+
+      <dl class="readout">
+        <div class="readout__box">
+          <dt>Trips / hour</dt>
+          <dd id="readout-trips">—</dd>
+        </div>
+        <div class="readout__box">
+          <dt>Median fare</dt>
+          <dd id="readout-fare">—</dd>
+        </div>
+        <div class="readout__box">
+          <dt>Typical wait</dt>
+          <dd id="readout-wait">—</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="section wrap" id="hours">
+    <div class="card chartcard">
+      <div class="chartcard__head">
+        <div>
+          <p class="label">Figure 2 · trips by hour</p>
+          <h2>A day in the city, counted</h2>
+        </div>
+        <p>
+          Every ride in the four months, bucketed by the hour it was picked up.
+          Hover a bar for that hour's numbers.
+        </p>
+      </div>
+
+      <span class="tip" id="tip">
+        <span class="tip__dot" aria-hidden="true"></span>
+        <span id="tip-text">Hover any hour to read it</span>
+      </span>
+
+      <div class="chart">
+        <div class="bars" id="bars"></div>
+        <div class="bar-axis" id="bar-axis"></div>
+      </div>
+
+      <div class="chart-notes">
+        <span><i aria-hidden="true"></i> <b data-fill="cheap_hour">4 am</b> — cheapest per mile at <b data-fill="cheap_ppm">$5.07</b></span>
+        <span><i aria-hidden="true"></i> <b data-fill="dear_hour">5 pm</b> — dearest at <b data-fill="dear_ppm">$7.48</b></span>
+        <span><i data-plain="true" aria-hidden="true"></i> <b data-fill="busy_hour">6 pm</b> — most rides, <b data-fill="busy_trips">4.7M</b> of them</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="tools">
+    <div class="feat__head">
+      <div>
+        <p class="label">Core architecture</p>
+        <h2>What the project is made of</h2>
+      </div>
+    </div>
+
+    <div class="boxes">
+      <article class="box">
+        <span class="box__icon">
+          <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M2.5 5.4 7.3 3.2v11.4L2.5 16.8V5.4Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+            <path d="M7.3 3.2 12.7 5.4v11.4L7.3 14.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+            <path d="M12.7 5.4 17.5 3.2v11.4l-4.8 2.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+          </svg>
+        </span>
+        <p class="box__kicker">01 / Spatial</p>
+        <h3>Zone map</h3>
+        <p>Trips, median fare and typical wait for every TLC taxi zone, shaded by quantile so the airports do not flatten the scale.</p>
+        <p class="box__foot"><span data-fill="zones">261</span> zones <b>3 layers</b></p>
+      </article>
+
+      <article class="box">
+        <span class="box__icon">
+          <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="10" cy="10" r="7.4" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+            <path d="M10 5.6V10l3 1.9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </span>
+        <p class="box__kicker">02 / Temporal</p>
+        <h3>Hourly demand</h3>
+        <p>Pickup hour, weekday and holiday patterns across the whole four months, from the 3 am trough to the evening peak.</p>
+        <p class="box__foot">24-hour buckets <b data-fill="swing">+48%</b></p>
+      </article>
+
+      <article class="box">
+        <span class="box__icon">
+          <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="10" cy="10" r="7.4" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+            <path d="M10 5.4v9.2M7.9 7.9h3.6a1.8 1.8 0 0 1 0 3.6H8.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+          </svg>
+        </span>
+        <p class="box__kicker">03 / Pricing</p>
+        <h3>Fare estimate</h3>
+        <p>Two zones and a time in; a likely fare, a range around it, and the gap between Uber and Lyft on that route.</p>
+        <p class="box__foot">Error on unseen month <b data-fill="model_mae">$5.02</b></p>
+      </article>
+
+      <article class="box">
+        <span class="box__icon">
+          <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+            <rect x="3.2" y="3.2" width="13.6" height="13.6" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+            <path d="M7 12.4 9.4 9.6l2 1.7 3.2-3.9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </span>
+        <p class="box__kicker">04 / Modelling</p>
+        <h3>Model lab</h3>
+        <p>What the models get right, where they fail, and the plain baselines they have to beat on a time-based split.</p>
+        <p class="box__foot">R² on unseen month <b data-fill="model_r2">0.804</b></p>
+      </article>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="static/js/app.js?v=10"></script>
+</body>
+</html>

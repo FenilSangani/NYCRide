@@ -1,0 +1,111 @@
+{
+  "trained": "2026-10-16 17:29",
+  "sample_fraction": 0.1,
+  "train_rows": 5851185,
+  "test_rows": 1969989,
+  "train_months": [
+    "2025-09",
+    "2025-12",
+    "2026-01"
+  ],
+  "test_month": "2026-04",
+  "target": "log(base_fare)",
+  "features": [
+    "pu_zone",
+    "do_zone",
+    "trip_miles",
+    "hour",
+    "dow",
+    "is_weekend",
+    "is_holiday",
+    "is_holiday_eve",
+    "is_uber",
+    "shared_req",
+    "pu_airport",
+    "do_airport"
+  ],
+  "scores": [
+    {
+      "model": "mean fare",
+      "mae": 13.726,
+      "r2": -0.0001
+    },
+    {
+      "model": "linear regression, miles only",
+      "mae": 7.03,
+      "r2": 0.6712
+    },
+    {
+      "model": "linear regression, + hour/day/airport",
+      "mae": 7.003,
+      "r2": 0.681
+    },
+    {
+      "model": "gradient boosting",
+      "mae": 5.243,
+      "r2": 0.8035
+    },
+    {
+      "model": "gradient boosting on log(fare)",
+      "mae": 5.024,
+      "r2": 0.8039
+    }
+  ],
+  "range": {
+    "coverage": 0.7946,
+    "mean_width": 16.69
+  },
+  "importance": [
+    {
+      "feature": "trip_miles",
+      "drop": 1.4411
+    },
+    {
+      "feature": "pu_zone",
+      "drop": 0.0654
+    },
+    {
+      "feature": "do_zone",
+      "drop": 0.0548
+    },
+    {
+      "feature": "hour",
+      "drop": 0.0381
+    },
+    {
+      "feature": "is_uber",
+      "drop": 0.0093
+    },
+    {
+      "feature": "dow",
+      "drop": 0.0092
+    },
+    {
+      "feature": "shared_req",
+      "drop": 0.0072
+    },
+    {
+      "feature": "do_airport",
+      "drop": 0.0039
+    },
+    {
+      "feature": "pu_airport",
+      "drop": 0.0032
+    },
+    {
+      "feature": "is_holiday",
+      "drop": 0.0018
+    },
+    {
+      "feature": "is_weekend",
+      "drop": 0.0006
+    },
+    {
+      "feature": "is_holiday_eve",
+      "drop": 0.0
+    }
+  ],
+  "zone_pairs": 22470,
+  "detour_factor": 1.3762,
+  "seconds": 523.6
+}

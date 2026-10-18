@@ -1,0 +1,19 @@
+{
+  "sample": 0.05,
+  "train_rows": 2925597,
+  "test_rows": 984993,
+  "without_weather": {
+    "label": "without weather",
+    "mae": 5.080458871987656,
+    "r2": 0.7989338195283929
+  },
+  "with_weather": {
+    "label": "with weather",
+    "mae": 5.089485534621533,
+    "r2": 0.7944234752201066
+  },
+  "delta_mae": -0.009,
+  "delta_r2": -0.00451,
+  "keep": false,
+  "note": "Rain lifts the citywide mean fare 5-6% in September and April, but that lift is already carried by hour and zone, which the model has. The test here is whether weather adds anything on top."
+}

@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NYCRide — plan a trip</title>
+<meta name="description" content="Pick two New York taxi zones and a time, and read what the trip records say about the fare, the hour and the zones nearby.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="static/css/styles.css?v=10">
+<link rel="stylesheet" href="static/css/predictor.css?v=10">
+<script>
+  /* Apply a saved theme before first paint, or it flashes the other one. */
+  try {
+    var t = localStorage.getItem("nycride-theme");
+    if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+  } catch (e) { /* private mode: stay on the default */ }
+</script>
+</head>
+<body>
+
+<header class="nav wrap">
+  <div class="brand">
+    <a class="brand__name" href="index.html" style="text-decoration: none">NYCRide</a>
+  </div>
+  <nav class="nav__links" aria-label="Sections">
+    <a href="index.html">Overview</a>
+    <a href="#fare">Fare</a>
+    <a href="#timing">Timing</a>
+    <a href="#scenarios">Scenarios</a>
+    <a href="#model">Model</a>
+  </nav>
+
+  <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch to light theme">
+    <svg class="theme-toggle__sun" width="17" height="17" viewBox="0 0 20 20" aria-hidden="true">
+      <circle cx="10" cy="10" r="3.6" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+      <g stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <line x1="10" y1="1.8" x2="10" y2="3.4"></line>
+        <line x1="10" y1="16.6" x2="10" y2="18.2"></line>
+        <line x1="1.8" y1="10" x2="3.4" y2="10"></line>
+        <line x1="16.6" y1="10" x2="18.2" y2="10"></line>
+        <line x1="4.3" y1="4.3" x2="5.4" y2="5.4"></line>
+        <line x1="14.6" y1="14.6" x2="15.7" y2="15.7"></line>
+        <line x1="4.3" y1="15.7" x2="5.4" y2="14.6"></line>
+        <line x1="14.6" y1="5.4" x2="15.7" y2="4.3"></line>
+      </g>
+    </svg>
+    <svg class="theme-toggle__moon" width="17" height="17" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+    </svg>
+  </button>
+
+  <a class="btn btn--ghost" href="index.html">Back to overview</a>
+</header>
+
+<main class="wrap">
+
+  <div class="page-head">
+    <div>
+      <p class="label">Plan a trip</p>
+      <h1>Pick two zones and a time</h1>
+    </div>
+    <p>
+      Every fare below comes from a model trained on
+      <span data-fill="trips_short">78.2M</span> cleaned trips and tested on a month it
+      never saw. Pick two zones to price the trip.
+    </p>
+  </div>
+
+  <!-- ===== trip picker ===== -->
+  <section class="picker" aria-label="Choose your route">
+    <div class="picker__side">
+      <div class="field">
+        <label for="zone-search">Search a zone</label>
+        <input type="search" id="zone-search" placeholder="Midtown, JFK, Astoria…"
+               autocomplete="off" role="combobox" aria-expanded="false"
+               aria-controls="zone-results" aria-autocomplete="list">
+        <ul class="results" id="zone-results" role="listbox" aria-label="Matching zones" hidden></ul>
+      </div>
+
+      <div class="ends">
+        <div class="end" id="end-a" data-active="true">
+          <span class="end__pin" data-end="a">A</span>
+          <span class="end__text">
+            <span class="end__label">Pick-up</span>
+            <span class="end__name" id="name-a" data-empty="true">Click a zone on the map</span>
+          </span>
+          <button type="button" class="end__clear" id="clear-a" aria-label="Clear pick-up">×</button>
+        </div>
+
+        <div class="end" id="end-b">
+          <span class="end__pin" data-end="b">B</span>
+          <span class="end__text">
+            <span class="end__label">Drop-off</span>
+            <span class="end__name" id="name-b" data-empty="true">Then click another</span>
+          </span>
+          <button type="button" class="end__clear" id="clear-b" aria-label="Clear drop-off">×</button>
+        </div>
+      </div>
+
+      <div class="picker__row">
+        <div class="field">
+          <label for="pick-day">Day</label>
+          <select id="pick-day">
+            <option value="0">Monday</option>
+            <option value="1">Tuesday</option>
+            <option value="2">Wednesday</option>
+            <option value="3">Thursday</option>
+            <option value="4" selected>Friday</option>
+            <option value="5">Saturday</option>
+            <option value="6">Sunday</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pick-hour">Hour</label>
+          <select id="pick-hour"></select>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field__legend">Ride type</span>
+        <div class="segmented" role="group" aria-label="Ride type">
+          <button type="button" data-shared="0" aria-pressed="true">Solo</button>
+          <button type="button" data-shared="1" aria-pressed="false">Shared</button>
+        </div>
+      </div>
+
+      <div class="picker__row">
+        <button type="button" class="btn btn--ghost" id="swap-ends" style="flex: 1 1 130px">Swap A ↔ B</button>
+        <button type="button" class="btn btn--ghost" id="reset-map" style="flex: 1 1 130px">Reset view</button>
+      </div>
+
+      <p class="hint">
+        Click any zone to set the pick-up, then a second zone for the drop-off.
+        Scroll to zoom once you have clicked into the map.
+      </p>
+    </div>
+
+    <div class="picker__map">
+      <div class="maptools">
+        <span class="label" id="layer-title">Trips started per hour</span>
+        <div class="chips" role="group" aria-label="Choose what the map shows">
+          <button type="button" data-layer="trips" aria-pressed="true">Trips</button>
+          <button type="button" data-layer="fare" aria-pressed="false">Fare</button>
+          <button type="button" data-layer="wait" aria-pressed="false">Wait</button>
+        </div>
+      </div>
+
+      <div id="map-canvas" class="map" role="application" aria-label="Map of New York City taxi zones. Click a zone to choose it as your pick-up or drop-off.">
+        <p class="map__loading">Loading trip data…</p>
+      </div>
+
+      <div class="legend">
+        <span id="legend-title">Trips started per hour</span>
+        <span class="legend__scale" id="legend-scale"></span>
+        <span class="legend__note">Quantile bands</span>
+      </div>
+
+      <div class="routebar">
+        <span id="route-text">No route chosen yet</span>
+        <span id="route-road"></span>
+        <span class="routebar__spacer"></span>
+        <span id="route-dist">—</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 01 fare ===== -->
+  <section class="feature" id="fare">
+    <div class="feature__head">
+      <span class="feature__n">01</span>
+      <h2>Estimated fare</h2>
+      <span class="tag-demo tag-real">Model</span>
+      <p>Gradient-boosted trees on zone pair, hour, day, distance and provider. The range is a separate pair of quantile models.</p>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="fare">
+          <span class="fare__value" id="fare-value">—</span>
+          <span class="fare__range" id="fare-range">pick two zones to see a figure</span>
+        </div>
+        <dl class="kv" style="margin-top: 22px">
+          <div><dt>Trip distance</dt><dd id="kv-dist">—</dd></div>
+          <div><dt>Price per mile on this trip</dt><dd id="kv-ppm">—</dd></div>
+          <div><dt>Typical wait in the pick-up zone</dt><dd id="kv-wait">—</dd></div>
+          <div><dt>Median fare of all trips starting there</dt><dd id="kv-zonefare">—</dd></div>
+          <div><dt>Median price per mile there</dt><dd id="kv-zoneppm">—</dd></div>
+        </dl>
+      </div>
+
+      <div class="card">
+        <p class="label" style="margin-bottom: 16px">Uber vs Lyft</p>
+        <div class="side-by-side">
+          <div class="mini-chart" id="provider-chart"></div>
+          <aside class="side-note">
+            <p>
+              There is no city-wide winner. Across 13,617 routes with enough solo trips
+              on both in the test month, Lyft priced above Uber on <b>67%</b> of them, and
+              the middle 80% of routes ran from Lyft <b>14%</b> dearer to Uber <b>14%</b>
+              dearer. Which one is cheaper is a per-route question.
+            </p>
+            <p>
+              The model learned that rather than a flat discount: on the same routes it
+              puts Uber dearer <b>32%</b> of the time against a measured <b>33%</b>.
+            </p>
+            <p>
+              Uber is <b data-fill="uber_share">72.7%</b> of the trips read,
+              Lyft <b data-fill="lyft_share">27.3%</b>.
+            </p>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 02 timing ===== -->
+  <section class="feature" id="timing">
+    <div class="feature__head">
+      <span class="feature__n">02</span>
+      <h2>Best time to leave</h2>
+      <span class="tag-demo tag-real">Model</span>
+      <p>Your exact trip priced at all 24 hours. Click anywhere on the chart to move your departure to that hour.</p>
+    </div>
+
+    <div class="card">
+      <span class="tip" id="tip">
+        <span class="tip__dot" aria-hidden="true"></span>
+        <span id="tip-text">Hover any hour to read it</span>
+      </span>
+
+      <div class="plot" id="plot" style="margin-top: 18px"></div>
+
+      <div class="chart-notes" id="chart-notes"></div>
+    </div>
+  </section>
+
+  <!-- ===== 03 nearby ===== -->
+  <section class="feature" id="nearby">
+    <div class="feature__head">
+      <span class="feature__n">03</span>
+      <h2>Pick-ups nearby</h2>
+      <span class="tag-demo tag-real">Model</span>
+      <p>Every zone within 2 km of your pick-up, priced for the same trip, same hour. Only the ones that come out cheaper are listed.</p>
+    </div>
+
+    <div class="split split--wide">
+      <div class="card">
+        <ul class="nearby" id="nearby-list">
+          <li><span class="nearby__name" style="color: var(--ink-3); font-weight: 400">Choose a pick-up zone to see what is near it</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <p class="label" style="margin-bottom: 14px">Why this is limited</p>
+        <p class="note" style="margin-top: 0">
+          The trip records give a <b>zone</b>, never a street address — the TLC drops exact
+          coordinates for privacy. So "walk a bit" can only mean "start from the next zone",
+          and on the measured sample only about <b>half</b> of trips had a neighbouring zone
+          close enough for that to be worth it.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 04 day of week ===== -->
+  <section class="feature" id="byday">
+    <div class="feature__head">
+      <span class="feature__n">04</span>
+      <h2>Across the week</h2>
+      <span class="tag-demo tag-real">Model</span>
+      <p>The same trip at the same hour, priced on each day of the week. Your chosen day is marked.</p>
+    </div>
+
+    <div class="split">
+      <div class="card">
+        <div class="mini-chart" id="week-chart"></div>
+      </div>
+      <div class="card">
+        <p class="label" style="margin-bottom: 18px">Calendar effects to add</p>
+        <dl class="kv">
+          <div><dt>Weekends</dt><dd>in the data</dd></div>
+          <div><dt>US public holidays</dt><dd>in the data</dd></div>
+          <div><dt>Holiday eves</dt><dd>in the data</dd></div>
+          <div><dt>Permitted events</dt><dd>weak signal</dd></div>
+        </dl>
+        <p class="note">
+          Street-closure permits — parades and street festivals — stop appearing in the city's
+          event feed after <b>2016</b>, so for these months the only events left are
+          Parks Department permits. Expect little from that feature.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 05 scenarios ===== -->
+  <section class="feature" id="scenarios">
+    <div class="feature__head">
+      <span class="feature__n">05</span>
+      <h2>What would make it cheaper</h2>
+      <span class="tag-demo tag-real">Model</span>
+      <p>The same trip under one change at a time — a different hour, day, provider, ride type or pick-up zone.</p>
+    </div>
+
+    <div class="card">
+      <div class="scenarios" id="scenarios-list">
+        <p class="hint">Pick two zones to compare the options.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 06 weather ===== -->
+  <section class="feature" id="weather">
+    <div class="feature__head">
+      <span class="feature__n">06</span>
+      <h2>Weather</h2>
+      <span class="tag-demo">Tested and dropped</span>
+      <p>Hourly weather was joined to every trip and fed to the model. It did not earn its place.</p>
+    </div>
+
+    <div class="card">
+      <div class="weather">
+        <dl class="weather__opt"><dt>Rain, September</dt><dd>+5.4%</dd></dl>
+        <dl class="weather__opt"><dt>Rain, April</dt><dd>+6.6%</dd></dl>
+        <dl class="weather__opt"><dt>Rain, January</dt><dd>no change</dd></dl>
+        <dl class="weather__opt"><dt>Model error with it</dt><dd>+$0.01</dd></dl>
+      </div>
+      <p class="note">
+        Rain really does lift the citywide mean fare 5&ndash;6% in September and April. But
+        when temperature, rainfall and wind were added to the model as features, the error on
+        the unseen month moved from <b>$5.080</b> to <b>$5.089</b> and R² from
+        <b>0.799</b> to <b>0.794</b> — slightly <b>worse</b>. The lift is already carried by
+        hour and zone, which the model has. So the feature is not used.
+        A feature that only sounds good is still a feature that does nothing.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== 07 model ===== -->
+  <section class="feature" id="model">
+    <div class="feature__head">
+      <span class="feature__n">07</span>
+      <h2>Model lab</h2>
+      <span class="tag-demo tag-real">Live metrics</span>
+      <p>Read from the trained models, not typed in. Baselines are listed because an R² alone means nothing.</p>
+    </div>
+
+    <div class="lab-top" id="lab-top"></div>
+
+    <div class="split" style="margin-top: 16px">
+      <div class="card">
+        <table class="table">
+          <caption class="label" style="text-align: left; margin-bottom: 14px">Fare — tested on an unseen month</caption>
+          <thead>
+            <tr><th scope="col">Model</th><th scope="col">MAE</th><th scope="col">R²</th></tr>
+          </thead>
+          <tbody id="fare-table"></tbody>
+        </table>
+        <p class="note" id="meta-note" style="margin-bottom: 0"></p>
+      </div>
+
+      <div class="card">
+        <table class="table">
+          <caption class="label" style="text-align: left; margin-bottom: 14px">Zone demand per hour</caption>
+          <thead>
+            <tr><th scope="col">Model</th><th scope="col">R²</th></tr>
+          </thead>
+          <tbody id="demand-table"></tbody>
+        </table>
+        <p class="note" style="margin-bottom: 0">
+          The demand figure the map shows is the <b>average</b>, not the model. With live
+          lag features the model wins at 0.972, but a static site has no live feed, and
+          without lags it scored <b>below</b> the plain average. So the average ships.
+        </p>
+      </div>
+    </div>
+
+    <div class="split" style="margin-top: 16px">
+      <div class="card">
+        <p class="label" style="margin-bottom: 16px">What the model leans on</p>
+        <div class="mini-chart" id="importance"></div>
+        <p class="note">
+          Permutation importance: each feature is shuffled in turn and the drop in accuracy
+          is measured. Distance dominates, which is what you would hope — the rest is the
+          model learning that the same mile costs differently by place and hour.
+        </p>
+      </div>
+
+      <div class="card">
+        <p class="label" style="margin-bottom: 16px">How it was built</p>
+        <dl class="kv" id="lab-facts"></dl>
+        <p class="note" style="margin-bottom: 0">
+          Trained on months, tested on a later one. A random split would let the model see
+          the future and report a score it could not repeat in use.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="static/js/predictor.js?v=10"></script>
+</body>
+</html>

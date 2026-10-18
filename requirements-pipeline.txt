@@ -1,0 +1,10 @@
+# Extra dependencies for rebuilding the data and retraining the models.
+# Not installed by the deployment: pyarrow, shapely and pyproj together are over
+# 100 MB and the API never imports any of them.
+#
+#   pip install -r requirements.txt -r requirements-pipeline.txt
+
+pyarrow==26.0.0     # read the monthly trip parquet a row group at a time
+pyshp==3.1.6        # read the TLC taxi-zone shapefile
+shapely==2.2.0      # simplify zone polygons before they go to the browser
+pyproj==3.7.2       # reproject the zones from state plane feet to lat/lon

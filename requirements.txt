@@ -1,0 +1,16 @@
+# Runtime only — what the API needs to serve a prediction, and nothing more.
+# This is the file the deployment installs, so anything added here ships with
+# every request. The data pipeline's own dependencies live in
+# requirements-pipeline.txt; pyarrow alone is 87 MB and the API never imports it.
+#
+# Versions are pinned, not floated. models/fare.joblib is a pickle written by
+# scikit-learn 1.9.1, and a different version can refuse to load it or load it
+# with a warning and subtly different behaviour. Re-pin these after retraining.
+fastapi==0.143.2
+joblib==1.6.0
+numpy==2.4.6
+pandas==3.0.6
+scikit-learn==1.9.1
+
+# Only needed to run the server locally; the deployment supplies its own.
+uvicorn[standard]==0.54.0

@@ -1,0 +1,32 @@
+# Raw and cleaned trip data: 4.5 GB of parquet, far past anything git should hold.
+# README.md says where to download it and which scripts rebuild the cleaned files.
+#
+# The one exception is the zone lookup: 18 KB, and app/main.py reads it at start-up,
+# so a fresh clone cannot boot without it. Git cannot re-include a file whose parent
+# directory is excluded, which is why these ignore directory *contents* step by step
+# rather than the directories themselves.
+DataSets/*
+!DataSets/Zones/
+DataSets/Zones/*
+!DataSets/Zones/nyc_zones (cleaned).csv
+
+# Virtual environment — rebuild it from requirements.txt
+.venv/
+venv/
+
+# Editor state, not part of the project
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Logs and scratch output
+*.log
